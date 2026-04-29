@@ -556,7 +556,7 @@ function renderCal(){
     const isThisMonth=d.getMonth()===mo;
     const isToday=ds===todayStr;
     const cell=document.createElement('div');
-    cell.className='cal-day'+(isThisMonth?'',' other-month').join('')+(!isThisMonth?' other-month':'')+(isToday?' is-today':'');
+    cell.className='cal-day'+(!isThisMonth?' other-month':'')+(isToday?' is-today':'');
     // day number
     const dnEl=document.createElement('div');dnEl.className='dn';dnEl.textContent=d.getDate();
     cell.appendChild(dnEl);
