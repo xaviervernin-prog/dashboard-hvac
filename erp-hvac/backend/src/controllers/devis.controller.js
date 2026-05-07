@@ -1,5 +1,6 @@
 const { db } = require('../config/supabase');
 const { getNextNumber } = require('../utils/numerotation');
+const { generateDevisPDF } = require('../services/pdf.service');
 
 async function list(req, res, next) {
   try {
@@ -186,11 +187,54 @@ async function dupliquer(req, res, next) {
 }
 
 async function pdf(req, res, next) {
-  res.status(501).json({ message: 'PDF disponible en Phase 2' });
+  try {
+    const buffer = await generateDevisPDF(req.params.id);
+    const { rows: [d] } = await db.query('SELECT numero FROM devis WHERE id=$1', [req.params.id]);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="devis-${d?.numero || req.params.id}.pdf"`);
+    res.send(buffer);
+  } catch (err) { next(err); }
 }
 
 async function facturer(req, res, next) {
-  res.status(501).json({ message: 'Facturation disponible en Phase 2' });
+  const pgClient = await db.getClient();
+  try {
+    await pgClient.query('BEGIN');
+    const { rows: [d] } = await pgClient.query(
+      'SELECT * FROM devis WHERE id=$1 AND statut=\'accepte\'',
+      [req.params.id]
+    );
+    if (!d) return res.status(400).json({ error: 'Devis introuvable ou non accepté' });
+
+    const { rows: lignes } = await pgClient.query(
+      'SELECT * FROM devis_lignes WHERE devis_id=$1 ORDER BY ordre', [d.id]
+    );
+
+    const { getNextNumber } = require('../utils/numerotation');
+    const numero = await getNextNumber(pgClient, 'facture', 'FAC');
+
+    const { rows: [facture] } = await pgClient.query(
+      `INSERT INTO factures (numero, client_id, devis_id, date_emission, montant_ht, montant_tva, montant_ttc, created_by)
+       VALUES ($1,$2,$3,CURRENT_DATE,$4,$5,$6,$7) RETURNING *`,
+      [numero, d.client_id, d.id, d.montant_ht, d.montant_tva, d.montant_ttc, req.user.id]
+    );
+
+    for (let i = 0; i < lignes.length; i++) {
+      const l = lignes[i];
+      await pgClient.query(
+        'INSERT INTO facture_lignes (facture_id, article_id, designation, quantite, prix_unitaire, tva_taux, ordre) VALUES ($1,$2,$3,$4,$5,$6,$7)',
+        [facture.id, l.article_id, l.designation, l.quantite, l.prix_unitaire, l.tva_taux, i]
+      );
+    }
+
+    await pgClient.query('COMMIT');
+    res.status(201).json(facture);
+  } catch (err) {
+    await pgClient.query('ROLLBACK');
+    next(err);
+  } finally {
+    pgClient.release();
+  }
 }
 
 module.exports = { list, get, create, update, remove, accepter, relancer, dupliquer, pdf, facturer };

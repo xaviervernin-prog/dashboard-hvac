@@ -1,5 +1,6 @@
 const { db } = require('../config/supabase');
 const { getNextNumber } = require('../utils/numerotation');
+const { generateFacturePDF } = require('../services/pdf.service');
 
 async function list(req, res, next) {
   try {
@@ -130,7 +131,13 @@ async function addPaiement(req, res, next) {
 }
 
 async function pdf(req, res, next) {
-  res.status(501).json({ message: 'PDF disponible en Phase 2' });
+  try {
+    const buffer = await generateFacturePDF(req.params.id);
+    const { rows: [f] } = await db.query('SELECT numero FROM factures WHERE id=$1', [req.params.id]);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="facture-${f?.numero || req.params.id}.pdf"`);
+    res.send(buffer);
+  } catch (err) { next(err); }
 }
 
 async function relancer(req, res, next) {

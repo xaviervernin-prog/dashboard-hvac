@@ -1,4 +1,5 @@
 const { db } = require('../config/supabase');
+const { generateRapportPDF } = require('../services/pdf.service');
 
 async function list(req, res, next) {
   try {
@@ -139,7 +140,12 @@ async function rapport(req, res, next) {
 }
 
 async function pdf(req, res, next) {
-  res.status(501).json({ message: 'PDF disponible en Phase 2' });
+  try {
+    const buffer = await generateRapportPDF(req.params.id);
+    res.setHeader('Content-Type', 'application/pdf');
+    res.setHeader('Content-Disposition', `attachment; filename="rapport-intervention-${req.params.id}.pdf"`);
+    res.send(buffer);
+  } catch (err) { next(err); }
 }
 
 module.exports = { list, get, create, update, remove, cloturer, rapport, pdf };
