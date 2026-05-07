@@ -1,0 +1,16 @@
+{
+  "name": "ERP Dubai — Dépannage & Rénovation",
+  "short_name": "ERP Dubai",
+  "description": "Gestion complète de l'activité de dépannage et rénovation à Dubai",
+  "start_url": "/app.html",
+  "display": "standalone",
+  "background_color": "#f0f2f5",
+  "theme_color": "#1a1d27",
+  "orientation": "any",
+  "icons": [
+    { "src": "/assets/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/assets/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/assets/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "categories": ["business", "productivity"]
+}

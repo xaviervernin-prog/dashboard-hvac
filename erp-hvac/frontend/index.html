@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>ERP Dubai — Connexion</title>
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#1a1d27">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<style>
+:root { --blue:#2563eb; --border:#e2e8f0; --text:#1a1d27; --muted:#94a3b8; }
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Segoe UI', system-ui, sans-serif; background: #f0f2f5; color: var(--text); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
+.login-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 40px 36px; width: 100%; max-width: 380px; box-shadow: 0 4px 32px rgba(0,0,0,.08); }
+.login-logo { text-align: center; margin-bottom: 28px; }
+.login-logo .icon { font-size: 40px; display: block; margin-bottom: 8px; }
+.login-logo h1 { font-size: 20px; font-weight: 800; color: var(--text); }
+.login-logo p { font-size: 12px; color: var(--muted); margin-top: 3px; }
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 12px; font-weight: 600; color: #64748b; margin-bottom: 5px; }
+.form-group input { width: 100%; background: #fff; border: 1.5px solid var(--border); border-radius: 8px; padding: 11px 14px; font-size: 15px; color: var(--text); outline: none; transition: border-color .12s; }
+.form-group input:focus { border-color: var(--blue); }
+.btn-login { width: 100%; background: var(--blue); color: #fff; border: none; padding: 13px; border-radius: 9px; font-size: 15px; font-weight: 700; cursor: pointer; margin-top: 6px; transition: background .12s; }
+.btn-login:hover { background: #1d4ed8; }
+.btn-login:disabled { background: #93c5fd; cursor: not-allowed; }
+.error-msg { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 10px 14px; font-size: 13px; color: #991b1b; margin-bottom: 14px; display: none; }
+.footer-note { text-align: center; font-size: 11px; color: var(--muted); margin-top: 24px; }
+</style>
+</head>
+<body>
+<div class="login-card">
+  <div class="login-logo">
+    <span class="icon">🔧</span>
+    <h1>ERP Dubai</h1>
+    <p>Dépannage & Rénovation</p>
+  </div>
+  <div id="error-msg" class="error-msg"></div>
+  <form id="login-form">
+    <div class="form-group">
+      <label for="email">Email</label>
+      <input type="email" id="email" autocomplete="email" placeholder="votre@email.com" required>
+    </div>
+    <div class="form-group">
+      <label for="password">Mot de passe</label>
+      <input type="password" id="password" autocomplete="current-password" placeholder="••••••••" required>
+    </div>
+    <button type="submit" class="btn-login" id="btn-login">Se connecter</button>
+  </form>
+  <p class="footer-note">Accès réservé aux membres de l'équipe</p>
+</div>
+
+<script>
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const btn = document.getElementById('btn-login');
+  const errEl = document.getElementById('error-msg');
+  btn.disabled = true;
+  btn.textContent = 'Connexion…';
+  errEl.style.display = 'none';
+
+  try {
+    const res = await fetch('/api/v1/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: document.getElementById('email').value,
+        password: document.getElementById('password').value
+      })
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Identifiants incorrects');
+
+    localStorage.setItem('erp_token', data.token);
+    localStorage.setItem('erp_user', JSON.stringify(data.user));
+    window.location.href = '/app.html';
+  } catch (err) {
+    errEl.textContent = err.message;
+    errEl.style.display = 'block';
+    btn.disabled = false;
+    btn.textContent = 'Se connecter';
+  }
+});
+
+// Redirect if already logged in
+if (localStorage.getItem('erp_token')) {
+  window.location.href = '/app.html';
+}
+</script>
+</body>
+</html>
