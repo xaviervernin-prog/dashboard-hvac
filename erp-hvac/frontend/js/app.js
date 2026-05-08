@@ -70,6 +70,8 @@ function switchTab(tab) {
     case 'devis':     loadDevis(); break;
     case 'interventions': loadInterventions(); break;
     case 'factures':  loadFactures(); break;
+    case 'rh':        loadRH(); break;
+    case 'vehicules': loadVehicules(); break;
     default:
       if (!panel.dataset.loaded) {
         panel.innerHTML = `<div class="empty"><div class="empty-icon">🚧</div><p>Module en cours de développement (Phase suivante)</p></div>`;
