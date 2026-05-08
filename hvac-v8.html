@@ -283,6 +283,9 @@ code{font-family:monospace;color:var(--blue);font-size:12px;font-weight:600;}
     <button class="nav-item" onclick="switchTab('articles')"><span class="ic">🔧</span> Articles</button>
     <button class="nav-item" onclick="switchTab('devis')"><span class="ic">📋</span> Devis</button>
     <button class="nav-item" onclick="switchTab('facturation')"><span class="ic">💰</span> Facturation</button>
+    <div class="sidebar-lbl" style="margin-top:12px;">ERP</div>
+    <button class="nav-item" onclick="switchTab('achats')"><span class="ic">🛒</span> Achats</button>
+    <button class="nav-item" onclick="switchTab('comptabilite')"><span class="ic">📊</span> Comptabilité</button>
   </nav>
   <div class="main">
 
@@ -437,6 +440,72 @@ code{font-family:monospace;color:var(--blue);font-size:12px;font-weight:600;}
         </table></div>
       </div>
     </div>
+
+    <!-- ACHATS -->
+    <div id="tab-achats" class="tab-panel">
+      <div class="page-title">Achats</div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="lbl">Commandes</div><div class="val" id="s-aht">0</div></div>
+        <div class="stat-card"><div class="lbl">En attente</div><div class="val" id="s-aha">0</div></div>
+        <div class="stat-card"><div class="lbl">Reçues</div><div class="val" id="s-ahr">0</div></div>
+        <div class="stat-card"><div class="lbl">Total dépensé</div><div class="val" id="s-ahm">0</div><div class="sub">AED</div></div>
+      </div>
+      <div class="table-card">
+        <div class="table-header">
+          <h3>Commandes fournisseurs</h3>
+          <div class="table-header-actions">
+            <button class="btn-filter" id="ft-achats" onclick="toggleFilters('achats')"><span class="filter-dot"></span>🔍 Filtres</button>
+            <button class="btn-p" onclick="openAchat(null)">+ Commander</button>
+          </div>
+        </div>
+        <div class="filter-bar" id="fb-achats" style="display:none">
+          <input type="text" id="fq-achats" placeholder="Rechercher fournisseur, N°…" oninput="renderAchats();updateFilterBtn('achats')">
+          <select id="fs-achats" onchange="renderAchats();updateFilterBtn('achats')">
+            <option value="">Tous statuts</option>
+            <option value="en_attente">En attente</option>
+            <option value="reçu">Reçu</option>
+            <option value="annulé">Annulé</option>
+          </select>
+        </div>
+        <div class="tscroll"><table>
+          <thead><tr><th>N°</th><th>Fournisseur</th><th>Réf.</th><th>Date</th><th>Montant</th><th>Statut</th><th>Actions</th></tr></thead>
+          <tbody id="tb-achats"><tr><td colspan="7" class="empty-state">Aucune commande</td></tr></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- COMPTABILITE -->
+    <div id="tab-comptabilite" class="tab-panel">
+      <div class="page-title">Comptabilité</div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="lbl">Recettes</div><div class="val" id="s-cr">0</div><div class="sub" style="color:var(--green)">AED</div></div>
+        <div class="stat-card"><div class="lbl">Dépenses</div><div class="val" id="s-cd">0</div><div class="sub" style="color:var(--red)">AED</div></div>
+        <div class="stat-card"><div class="lbl">Solde</div><div class="val" id="s-cs">0</div><div class="sub">AED</div></div>
+        <div class="stat-card"><div class="lbl">Écritures</div><div class="val" id="s-ce">0</div></div>
+      </div>
+      <div class="table-card">
+        <div class="table-header">
+          <h3>Journal comptable</h3>
+          <div class="table-header-actions">
+            <button class="btn-filter" id="ft-ecritures" onclick="toggleFilters('ecritures')"><span class="filter-dot"></span>🔍 Filtres</button>
+            <button class="btn-p" onclick="openEcriture(null)">+ Écriture</button>
+          </div>
+        </div>
+        <div class="filter-bar" id="fb-ecritures" style="display:none">
+          <input type="text" id="fq-ecritures" placeholder="Rechercher description, N°…" oninput="renderEcritures();updateFilterBtn('ecritures')">
+          <select id="fs-ecritures" onchange="renderEcritures();updateFilterBtn('ecritures')">
+            <option value="">Tous types</option>
+            <option value="recette">Recette</option>
+            <option value="depense">Dépense</option>
+          </select>
+        </div>
+        <div class="tscroll"><table>
+          <thead><tr><th>N°</th><th>Date</th><th>Type</th><th>Catégorie</th><th>Description</th><th>Montant</th><th>Moyen</th></tr></thead>
+          <tbody id="tb-ecritures"><tr><td colspan="7" class="empty-state">Aucune écriture</td></tr></tbody>
+        </table></div>
+      </div>
+    </div>
+
   </div>
 </div>
 
@@ -446,6 +515,8 @@ code{font-family:monospace;color:var(--blue);font-size:12px;font-weight:600;}
   <button onclick="switchTab('articles')"><span class="ic">🔧</span>Articles</button>
   <button onclick="switchTab('devis')"><span class="ic">📋</span>Devis</button>
   <button onclick="switchTab('facturation')"><span class="ic">💰</span>Factures</button>
+  <button onclick="switchTab('achats')"><span class="ic">🛒</span>Achats</button>
+  <button onclick="switchTab('comptabilite')"><span class="ic">📊</span>Compta</button>
 </nav>
 
 <!-- MODAL CLIENT -->
@@ -630,6 +701,73 @@ code{font-family:monospace;color:var(--blue);font-size:12px;font-weight:600;}
   </div>
 </div></div>
 
+<!-- MODAL ACHAT -->
+<div class="overlay" id="ov-achat"><div class="modal">
+  <div class="drag"></div>
+  <h3 id="achat-modal-title">Nouvelle commande</h3>
+  <div class="g2">
+    <div class="form-row"><label>Fournisseur *</label><input id="ah-four" placeholder="Daikin ME, Carrier Gulf…"></div>
+    <div class="form-row"><label>Référence commande</label><input id="ah-ref" placeholder="Auto si vide"></div>
+  </div>
+  <div class="g2">
+    <div class="form-row"><label>Date *</label><input type="date" id="ah-date"></div>
+    <div class="form-row"><label>Statut</label>
+      <select id="ah-st"><option value="en_attente">En attente</option><option value="reçu">Reçu</option><option value="annulé">Annulé</option></select>
+    </div>
+  </div>
+  <div class="art-sec">
+    <div class="art-sec-t">Articles commandés</div>
+    <div id="achat-lines"></div>
+    <button class="btn-add-line" onclick="addAchatLine()">+ Ajouter un article</button>
+    <div class="d-total">Total : <span id="ah-total">0 AED</span></div>
+  </div>
+  <div class="form-row"><label>Montant total (AED) — si sans détail</label><input type="number" id="ah-montant" placeholder="0" oninput="updateAhTotal()"></div>
+  <div class="form-row"><label>Notes</label><textarea id="ah-notes" placeholder="Délai livraison, conditions…"></textarea></div>
+  <div class="mact">
+    <button class="btn-del" id="ah-del-btn" style="display:none" onclick="deleteAchat()">Supprimer</button>
+    <button class="btn-cancel" onclick="closeOv('achat')">Annuler</button>
+    <button class="btn-save" onclick="saveAchat()">Enregistrer</button>
+  </div>
+</div></div>
+
+<!-- MODAL ECRITURE -->
+<div class="overlay" id="ov-ecriture"><div class="modal">
+  <div class="drag"></div>
+  <h3 id="ecriture-modal-title">Nouvelle écriture</h3>
+  <div class="g2">
+    <div class="form-row"><label>Date *</label><input type="date" id="ec-date"></div>
+    <div class="form-row"><label>Type *</label>
+      <select id="ec-type" onchange="updateEcCategories()">
+        <option value="recette">Recette</option>
+        <option value="depense">Dépense</option>
+      </select>
+    </div>
+  </div>
+  <div class="g2">
+    <div class="form-row"><label>Catégorie</label>
+      <select id="ec-cat"></select>
+    </div>
+    <div class="form-row"><label>Moyen de paiement</label>
+      <select id="ec-moyen">
+        <option value="virement">Virement</option>
+        <option value="chèque">Chèque</option>
+        <option value="espèces">Espèces</option>
+        <option value="carte">Carte</option>
+      </select>
+    </div>
+  </div>
+  <div class="form-row"><label>Description *</label><input id="ec-desc" placeholder="Facture Daikin ME, salaire technicien…"></div>
+  <div class="g2">
+    <div class="form-row"><label>Montant (AED) *</label><input type="number" id="ec-montant" placeholder="0"></div>
+    <div class="form-row"><label>Référence</label><input id="ec-ref" placeholder="FAC-001, ACH-001…"></div>
+  </div>
+  <div class="mact">
+    <button class="btn-del" id="ec-del-btn" style="display:none" onclick="deleteEcriture()">Supprimer</button>
+    <button class="btn-cancel" onclick="closeOv('ecriture')">Annuler</button>
+    <button class="btn-save" onclick="saveEcriture()">Enregistrer</button>
+  </div>
+</div></div>
+
 <!-- MODAL CATEGORIES -->
 <div class="overlay" id="ov-cats"><div class="modal">
   <div class="drag"></div>
@@ -648,12 +786,13 @@ code{font-family:monospace;color:var(--blue);font-size:12px;font-weight:600;}
 var DEFAULT_CATS=['Unités intérieures','Unités extérieures','Gaines & conduits','Accessoires','Pièces détachées',"Main d'oeuvre",'Autre'];
 var S={
   clients:[],articles:[],devis:[],interventions:[],factures:[],
+  achats:[],ecritures:[],
   categories:DEFAULT_CATS.slice(),
   profil:{nom:'',prenom:'',tel:'',permis:'',permisExp:'',vehicle:'',photoB64:''}
 };
-var C={art:1,devis:1,fact:1};
+var C={art:1,devis:1,fact:1,achat:1,ecriture:1};
 var calDate=new Date(); calDate.setDate(1);
-var editId={client:null,article:null,devis:null,facture:null,interv:null};
+var editId={client:null,article:null,devis:null,facture:null,interv:null,achat:null,ecriture:null};
 var dLines=[], chantiers=[];
 var today=new Date().toISOString().split('T')[0];
 var notifPanelOpen=false;
@@ -676,8 +815,10 @@ function loadFromStorage(){
         if(!S.devis)S.devis=[];
         if(!S.interventions)S.interventions=[];
         if(!S.factures)S.factures=[];
+        if(!S.achats)S.achats=[];
+        if(!S.ecritures)S.ecritures=[];
       }
-      if(p.C)C=p.C;
+      if(p.C){C=p.C;if(!C.achat)C.achat=1;if(!C.ecriture)C.ecriture=1;}
     }
   }catch(e){}
 }
@@ -687,7 +828,7 @@ try{document.getElementById('hDate').textContent=new Date().toLocaleDateString('
 try{document.getElementById('tph-date').textContent=new Date().toLocaleDateString('fr-FR',{weekday:'long',day:'numeric',month:'long'});}catch(e){}
 
 // ===== NAV =====
-var TABS=['agenda','clients','articles','devis','facturation'];
+var TABS=['agenda','clients','articles','devis','facturation','achats','comptabilite'];
 function switchTab(n){
   TABS.forEach(function(t){document.getElementById('tab-'+t).classList.toggle('active',t===n);});
   document.querySelectorAll('.nav-item').forEach(function(b,i){b.classList.toggle('active',TABS[i]===n);});
@@ -796,6 +937,8 @@ function bD(s){var m={en_attente:'ye',accepte:'gr',refuse:'re'},l={en_attente:'E
 function bI(s){var m={planifiee:'bg','en-cours':'ye',terminee:'gr',annulee:'gy'},l={planifiee:'Planifiée','en-cours':'En cours',terminee:'Terminée',annulee:'Annulée'};return '<span class="badge '+(m[s]||'gy')+'">'+(l[s]||s)+'</span>';}
 function bF(s){var m={en_attente:'bg',payee:'gr',retard:'re'},l={en_attente:'En attente',payee:'Payée',retard:'En retard'};return '<span class="badge '+(m[s]||'gy')+'">'+(l[s]||s)+'</span>';}
 function bSt(q){if(q<=0)return '<span class="badge re">'+q+'</span>';if(q<=5)return '<span class="badge ye">'+q+'</span>';return '<strong style="color:var(--green)">'+q+'</strong>';}
+function bAh(s){var m={en_attente:'ye',reçu:'gr',annulé:'gy'},l={en_attente:'En attente',reçu:'Reçu',annulé:'Annulé'};return '<span class="badge '+(m[s]||'gy')+'">'+(l[s]||s)+'</span>';}
+function bEc(t){return t==='recette'?'<span class="badge gr">Recette</span>':'<span class="badge re">Dépense</span>';}
 
 // ===== NOTIFICATIONS =====
 function computeNotifs(){
@@ -1337,6 +1480,157 @@ function renderFactures(){
   document.getElementById('s-fr').textContent=fmt(ret);
 }
 
+// ===== ACHATS LINES =====
+var aLines=[];
+function renderALines(){
+  var c=document.getElementById('achat-lines'); c.innerHTML='';
+  aLines.forEach(function(l,i){
+    var div=document.createElement('div'); div.className='art-line';
+    div.innerHTML='<input type="text" placeholder="Désignation" value="'+(l.nom||'')+'" oninput="aLines['+i+'].nom=this.value">'
+      +'<input type="number" min="1" value="'+(l.qty||1)+'" onchange="aLines['+i+'].qty=parseInt(this.value)||1;updateAhTotal()">'
+      +'<input type="number" value="'+(l.prixU||'')+'" placeholder="AED" onchange="aLines['+i+'].prixU=parseFloat(this.value)||0;updateAhTotal()">'
+      +'<button class="rm-line" onclick="aLines.splice('+i+',1);renderALines()">×</button>';
+    c.appendChild(div);
+  });
+  updateAhTotal();
+}
+function addAchatLine(){aLines.push({nom:'',qty:1,prixU:0});renderALines();}
+function updateAhTotal(){
+  var tot=aLines.reduce(function(s,l){return s+(l.prixU||0)*(l.qty||1);},0);
+  if(!aLines.length)tot=parseFloat((document.getElementById('ah-montant')||{value:''}).value)||0;
+  document.getElementById('ah-total').textContent=fmt(tot)+' AED';
+}
+
+// ===== ACHATS =====
+function openAchat(id){
+  editId.achat=id; aLines=[];
+  document.getElementById('achat-modal-title').textContent=id?'Modifier la commande':'Nouvelle commande';
+  document.getElementById('ah-del-btn').style.display=id?'block':'none';
+  if(id){
+    var a=S.achats.find(function(x){return x.id===id;});if(!a)return;
+    sv('ah-four',a.fournisseur);sv('ah-ref',a.ref||'');sv('ah-date',a.date);sv('ah-st',a.statut);sv('ah-montant',a.montant||'');sv('ah-notes',a.notes||'');
+    aLines=(a.lignes||[]).map(function(l){return {nom:l.nom,qty:l.qty,prixU:l.prixU};});
+  } else {
+    ['ah-four','ah-ref','ah-montant','ah-notes'].forEach(function(i){sv(i,'');});sv('ah-date',today);sv('ah-st','en_attente');
+  }
+  renderALines();
+  document.getElementById('ov-achat').classList.add('open');
+}
+function saveAchat(){
+  if(!gv('ah-four'))return alert('Fournisseur obligatoire');
+  var existing=editId.achat?S.achats.find(function(x){return x.id===editId.achat;}):null;
+  var montant=aLines.length?aLines.reduce(function(s,l){return s+(l.prixU||0)*(l.qty||1);},0):parseFloat(gv('ah-montant'))||0;
+  var ref=gv('ah-ref')||(existing?existing.ref:'ACH-'+String(C.achat).padStart(3,'0'));
+  var obj={id:editId.achat||Date.now(),num:existing?existing.num:'ACH-'+String(C.achat).padStart(3,'0'),fournisseur:gv('ah-four'),ref:ref,date:gv('ah-date'),statut:gv('ah-st'),montant:montant,lignes:aLines.map(function(l){return {nom:l.nom,qty:l.qty,prixU:l.prixU};}),notes:gv('ah-notes')};
+  if(!editId.achat)C.achat++;
+  if(editId.achat){var i=S.achats.findIndex(function(x){return x.id===editId.achat;});if(i>=0)S.achats[i]=obj;}
+  else S.achats.push(obj);
+  closeOv('achat'); renderAchats(); saveToStorage();
+}
+function deleteAchat(){
+  if(!confirm('Supprimer ?'))return;
+  S.achats=S.achats.filter(function(a){return a.id!==editId.achat;}); closeOv('achat'); renderAchats(); saveToStorage();
+}
+function recevoirAchat(id,e){
+  e.stopPropagation();
+  var a=S.achats.find(function(x){return x.id===id;});if(!a)return;
+  a.statut='reçu'; renderAchats(); saveToStorage();
+}
+function renderAchats(){
+  var q=(document.getElementById('fq-achats')||{value:''}).value.toLowerCase();
+  var st=(document.getElementById('fs-achats')||{value:''}).value;
+  var list=S.achats.filter(function(a){
+    var match=((a.fournisseur||'')+' '+(a.num||'')+' '+(a.ref||'')).toLowerCase().indexOf(q)>=0;
+    var stMatch=!st||a.statut===st;
+    return match&&stMatch;
+  });
+  var tb=document.getElementById('tb-achats');
+  tb.innerHTML=list.length?list.map(function(a){
+    var act=a.statut==='en_attente'?'<button class="act blue" onclick="recevoirAchat('+a.id+',event)">✅ Reçu</button>':'';
+    return '<tr onclick="openAchat('+a.id+')">'
+      +'<td><code>'+a.num+'</code></td><td><strong>'+a.fournisseur+'</strong></td>'
+      +'<td>'+(a.ref?'<code>'+a.ref+'</code>':'—')+'</td>'
+      +'<td>'+(a.date||'—')+'</td><td><strong>'+fmt(a.montant)+' AED</strong></td>'
+      +'<td>'+bAh(a.statut)+'</td><td>'+act+'</td></tr>';
+  }).join(''):'<tr><td colspan="7" class="empty-state">Aucune commande</td></tr>';
+  var tot=S.achats.filter(function(a){return a.statut!=='annulé';}).reduce(function(s,a){return s+a.montant;},0);
+  document.getElementById('s-aht').textContent=S.achats.length;
+  document.getElementById('s-aha').textContent=S.achats.filter(function(a){return a.statut==='en_attente';}).length;
+  document.getElementById('s-ahr').textContent=S.achats.filter(function(a){return a.statut==='reçu';}).length;
+  document.getElementById('s-ahm').textContent=fmt(tot);
+}
+
+// ===== ECRITURE CATEGORIES =====
+var EC_CATS={
+  recette:['Facturation HVAC','Prestation maintenance','Installation','Sous-traitance facturée','Autre'],
+  depense:['Achat matériel','Achat outillage','Carburant / Déplacements','Main d\'oeuvre externe','Charges bureau','Assurances','Autre']
+};
+function updateEcCategories(){
+  var type=gv('ec-type')||'recette';
+  var sel=document.getElementById('ec-cat');
+  if(!sel)return;
+  sel.innerHTML=EC_CATS[type].map(function(c){return '<option value="'+c+'">'+c+'</option>';}).join('');
+}
+
+// ===== ECRITURES =====
+function openEcriture(id){
+  editId.ecriture=id;
+  document.getElementById('ecriture-modal-title').textContent=id?'Modifier l\'écriture':'Nouvelle écriture';
+  document.getElementById('ec-del-btn').style.display=id?'block':'none';
+  if(id){
+    var e=S.ecritures.find(function(x){return x.id===id;});if(!e)return;
+    sv('ec-date',e.date);sv('ec-type',e.type);updateEcCategories();sv('ec-cat',e.categorie);sv('ec-moyen',e.moyen);sv('ec-desc',e.desc);sv('ec-montant',e.montant);sv('ec-ref',e.ref||'');
+  } else {
+    sv('ec-date',today);sv('ec-type','recette');updateEcCategories();sv('ec-moyen','virement');
+    ['ec-desc','ec-montant','ec-ref'].forEach(function(i){sv(i,'');});
+  }
+  document.getElementById('ov-ecriture').classList.add('open');
+}
+function saveEcriture(){
+  if(!gv('ec-desc'))return alert('Description obligatoire');
+  if(!gv('ec-montant'))return alert('Montant obligatoire');
+  var existing=editId.ecriture?S.ecritures.find(function(x){return x.id===editId.ecriture;}):null;
+  var obj={id:editId.ecriture||Date.now(),num:existing?existing.num:'ECR-'+String(C.ecriture).padStart(3,'0'),date:gv('ec-date'),type:gv('ec-type'),categorie:gv('ec-cat'),moyen:gv('ec-moyen'),desc:gv('ec-desc'),montant:parseFloat(gv('ec-montant'))||0,ref:gv('ec-ref')};
+  if(!editId.ecriture)C.ecriture++;
+  if(editId.ecriture){var i=S.ecritures.findIndex(function(x){return x.id===editId.ecriture;});if(i>=0)S.ecritures[i]=obj;}
+  else S.ecritures.push(obj);
+  closeOv('ecriture'); renderEcritures(); saveToStorage();
+}
+function deleteEcriture(){
+  if(!confirm('Supprimer ?'))return;
+  S.ecritures=S.ecritures.filter(function(e){return e.id!==editId.ecriture;}); closeOv('ecriture'); renderEcritures(); saveToStorage();
+}
+function renderEcritures(){
+  var q=(document.getElementById('fq-ecritures')||{value:''}).value.toLowerCase();
+  var tp=(document.getElementById('fs-ecritures')||{value:''}).value;
+  var list=S.ecritures.filter(function(e){
+    var match=((e.desc||'')+' '+(e.num||'')+' '+(e.ref||'')).toLowerCase().indexOf(q)>=0;
+    var tpMatch=!tp||e.type===tp;
+    return match&&tpMatch;
+  }).sort(function(a,b){return (b.date||'').localeCompare(a.date||'');});
+  var tb=document.getElementById('tb-ecritures');
+  tb.innerHTML=list.length?list.map(function(e){
+    return '<tr onclick="openEcriture('+e.id+')">'
+      +'<td><code>'+e.num+'</code></td>'
+      +'<td>'+(e.date||'—')+'</td>'
+      +'<td>'+bEc(e.type)+'</td>'
+      +'<td><span class="badge bg">'+e.categorie+'</span></td>'
+      +'<td>'+(e.desc||'—')+(e.ref?'<span style="font-size:10px;color:var(--muted);margin-left:4px;"><code>'+e.ref+'</code></span>':'')+'</td>'
+      +'<td style="font-weight:700;color:'+(e.type==='recette'?'var(--green)':'var(--red)')+';">'+(e.type==='recette'?'+':'-')+fmt(e.montant)+' AED</td>'
+      +'<td style="font-size:11px;color:var(--muted);">'+e.moyen+'</td>'
+      +'</tr>';
+  }).join(''):'<tr><td colspan="7" class="empty-state">Aucune écriture</td></tr>';
+  var rec=S.ecritures.filter(function(e){return e.type==='recette';}).reduce(function(s,e){return s+e.montant;},0);
+  var dep=S.ecritures.filter(function(e){return e.type==='depense';}).reduce(function(s,e){return s+e.montant;},0);
+  document.getElementById('s-cr').textContent=fmt(rec);
+  document.getElementById('s-cd').textContent=fmt(dep);
+  var solde=rec-dep;
+  var soldeEl=document.getElementById('s-cs');
+  soldeEl.textContent=fmt(Math.abs(solde));
+  soldeEl.style.color=solde>=0?'var(--green)':'var(--red)';
+  document.getElementById('s-ce').textContent=S.ecritures.length;
+}
+
 // ===== INIT =====
 loadFromStorage();
 fillCatSelects();
@@ -1345,6 +1639,9 @@ renderAvatar();
 renderCal();
 renderTodayPlan();
 updateBell();
+renderAchats();
+renderEcritures();
+updateEcCategories();
 </script>
 </body>
 </html>
