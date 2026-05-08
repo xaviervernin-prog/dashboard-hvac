@@ -1,0 +1,34 @@
+<div class="page-title">Facturation</div>
+<div class="stats-row">
+  <div class="stat-card"><div class="lbl">Total facturé</div><div class="val" id="s-ft">0</div><div class="sub">AED</div></div>
+  <div class="stat-card"><div class="lbl">Encaissé</div><div class="val" id="s-fe">0</div><div class="sub">AED</div></div>
+  <div class="stat-card"><div class="lbl">En attente</div><div class="val" id="s-fa">0</div><div class="sub">AED</div></div>
+  <div class="stat-card"><div class="lbl">En retard</div><div class="val" id="s-fr">0</div><div class="sub" style="color:var(--red)">AED</div></div>
+</div>
+<div class="table-card">
+  <div class="table-header">
+    <h3>Factures</h3>
+    <div class="table-header-actions">
+      <button class="btn-filter" id="ft-factures" onclick="App.toggleFilters('factures')">
+        <span class="filter-dot"></span>🔍 Filtres
+      </button>
+      <button class="btn-p" onclick="App.factures.open(null)">+ Nouvelle</button>
+    </div>
+  </div>
+  <div class="filter-bar" id="fb-factures" style="display:none">
+    <input type="text" id="fq-factures" placeholder="Rechercher client, N°…"
+      oninput="App.factures.render();App.updateFilterBtn('factures')">
+    <select id="fs-factures" onchange="App.factures.render();App.updateFilterBtn('factures')">
+      <option value="">Tous statuts</option>
+      <option value="en_attente">En attente</option>
+      <option value="payee">Payée</option>
+      <option value="retard">En retard</option>
+    </select>
+  </div>
+  <div class="tscroll">
+    <table>
+      <thead><tr><th>N°</th><th>Client</th><th>Devis</th><th>Émission</th><th>Échéance</th><th>Montant</th><th>Statut</th><th>Actions</th></tr></thead>
+      <tbody id="tb-factures"><tr><td colspan="8" class="empty-state">Aucune facture</td></tr></tbody>
+    </table>
+  </div>
+</div>

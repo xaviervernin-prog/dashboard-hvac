@@ -1,0 +1,33 @@
+<div class="page-title">Clients</div>
+<div class="stats-row">
+  <div class="stat-card"><div class="lbl">Total</div><div class="val" id="s-ct">0</div></div>
+  <div class="stat-card"><div class="lbl">Actifs</div><div class="val" id="s-ca">0</div><div class="sub">en projet</div></div>
+  <div class="stat-card"><div class="lbl">Prospects</div><div class="val" id="s-cp">0</div></div>
+</div>
+<div class="table-card">
+  <div class="table-header">
+    <h3>Clients</h3>
+    <div class="table-header-actions">
+      <button class="btn-filter" id="ft-clients" onclick="App.toggleFilters('clients')">
+        <span class="filter-dot"></span>🔍 Filtres
+      </button>
+      <button class="btn-p" onclick="App.clients.open(null)">+ Ajouter</button>
+    </div>
+  </div>
+  <div class="filter-bar" id="fb-clients" style="display:none">
+    <input type="text" id="fq-clients" placeholder="Rechercher nom, entreprise…"
+      oninput="App.clients.render();App.updateFilterBtn('clients')">
+    <select id="fs-clients" onchange="App.clients.render();App.updateFilterBtn('clients')">
+      <option value="">Tous statuts</option>
+      <option value="actif">Actif</option>
+      <option value="prospect">Prospect</option>
+      <option value="inactif">Inactif</option>
+    </select>
+  </div>
+  <div class="tscroll">
+    <table>
+      <thead><tr><th>Nom</th><th>Prénom</th><th>Entreprise</th><th>Téléphone</th><th>Statut</th></tr></thead>
+      <tbody id="tb-clients"><tr><td colspan="5" class="empty-state">Aucun client</td></tr></tbody>
+    </table>
+  </div>
+</div>

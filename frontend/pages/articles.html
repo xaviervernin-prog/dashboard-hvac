@@ -1,0 +1,31 @@
+<div class="page-title">Articles</div>
+<div class="stats-row">
+  <div class="stat-card"><div class="lbl">Références</div><div class="val" id="s-at">0</div></div>
+  <div class="stat-card"><div class="lbl">Stock critique</div><div class="val" id="s-ac">0</div><div class="sub">≤ 5 unités</div></div>
+  <div class="stat-card"><div class="lbl">Valeur stock</div><div class="val" id="s-av">0</div><div class="sub">AED</div></div>
+</div>
+<div class="table-card">
+  <div class="table-header">
+    <h3>Catalogue</h3>
+    <div class="table-header-actions">
+      <button class="btn-filter" id="ft-articles" onclick="App.toggleFilters('articles')">
+        <span class="filter-dot"></span>🔍 Filtres
+      </button>
+      <button class="btn-p gray" onclick="App.articles.openCatManager()">⚙️ Catégories</button>
+      <button class="btn-p" onclick="App.articles.open(null)">+ Ajouter</button>
+    </div>
+  </div>
+  <div class="filter-bar" id="fb-articles" style="display:none">
+    <input type="text" id="fq-articles" placeholder="Rechercher réf., désignation…"
+      oninput="App.articles.render();App.updateFilterBtn('articles')">
+    <select id="fs-articles" onchange="App.articles.render();App.updateFilterBtn('articles')">
+      <option value="">Toutes catégories</option>
+    </select>
+  </div>
+  <div class="tscroll">
+    <table>
+      <thead><tr><th>Réf.</th><th>Désignation</th><th>Catégorie</th><th>Prix (AED)</th><th>Stock</th></tr></thead>
+      <tbody id="tb-articles"><tr><td colspan="5" class="empty-state">Aucun article</td></tr></tbody>
+    </table>
+  </div>
+</div>

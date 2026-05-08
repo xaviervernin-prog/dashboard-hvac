@@ -1,0 +1,34 @@
+<div class="page-title">Devis</div>
+<div class="stats-row">
+  <div class="stat-card"><div class="lbl">Total</div><div class="val" id="s-dt">0</div></div>
+  <div class="stat-card"><div class="lbl">En attente</div><div class="val" id="s-da">0</div></div>
+  <div class="stat-card"><div class="lbl">Acceptés</div><div class="val" id="s-dv">0</div></div>
+  <div class="stat-card"><div class="lbl">Montant</div><div class="val" id="s-dm">0</div><div class="sub">AED</div></div>
+</div>
+<div class="table-card">
+  <div class="table-header">
+    <h3>Devis</h3>
+    <div class="table-header-actions">
+      <button class="btn-filter" id="ft-devis" onclick="App.toggleFilters('devis')">
+        <span class="filter-dot"></span>🔍 Filtres
+      </button>
+      <button class="btn-p" onclick="App.devis.open(null)">+ Nouveau</button>
+    </div>
+  </div>
+  <div class="filter-bar" id="fb-devis" style="display:none">
+    <input type="text" id="fq-devis" placeholder="Rechercher client, N°, objet…"
+      oninput="App.devis.render();App.updateFilterBtn('devis')">
+    <select id="fs-devis" onchange="App.devis.render();App.updateFilterBtn('devis')">
+      <option value="">Tous statuts</option>
+      <option value="en_attente">En attente</option>
+      <option value="accepte">Accepté</option>
+      <option value="refuse">Refusé</option>
+    </select>
+  </div>
+  <div class="tscroll">
+    <table>
+      <thead><tr><th>N°</th><th>Client</th><th>Objet</th><th>Date</th><th>Montant</th><th>Statut</th><th>Actions</th></tr></thead>
+      <tbody id="tb-devis"><tr><td colspan="7" class="empty-state">Aucun devis</td></tr></tbody>
+    </table>
+  </div>
+</div>

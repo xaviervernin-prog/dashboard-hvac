@@ -1,0 +1,22 @@
+<div class="page-title">Agenda</div>
+<div id="today-plan" style="display:none" class="today-plan">
+  <div class="today-plan-hd">
+    <span class="tph-label">Plan du jour</span>
+    <span class="tph-date" id="tph-date"></span>
+  </div>
+  <div class="today-items" id="today-items"></div>
+</div>
+<div class="cal-nav">
+  <button class="cnnav" onclick="App.agenda.changeMonth(-1)">&#8592;</button>
+  <span class="ml" id="cal-label"></span>
+  <div style="display:flex;gap:8px;">
+    <button class="btn-today" onclick="App.agenda.goToday()">Aujourd'hui</button>
+    <button class="cnnav" onclick="App.agenda.changeMonth(1)">&#8594;</button>
+  </div>
+</div>
+<div class="cal-grid">
+  <div class="cal-dow">
+    <span>Lun</span><span>Mar</span><span>Mer</span><span>Jeu</span><span>Ven</span><span>Sam</span><span>Dim</span>
+  </div>
+  <div class="cal-days" id="cal-days"></div>
+</div>
