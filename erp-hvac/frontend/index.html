@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>ERP HVAC Dubai — Connexion</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1a1d27">
+</head>
+<body>
+<div class="login-page">
+  <div class="login-card">
+    <div class="login-logo">
+      <h1>HVAC <span>Dubai</span></h1>
+      <p>ERP Dépannage &amp; Rénovation</p>
+    </div>
+
+    <div class="login-error" id="login-error"></div>
+
+    <form id="login-form">
+      <div class="form-row">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" placeholder="votre@email.com" required autocomplete="email">
+      </div>
+      <div class="form-row">
+        <label for="password">Mot de passe</label>
+        <input type="password" id="password" name="password" placeholder="••••••••" required autocomplete="current-password">
+      </div>
+      <button type="submit" class="btn-save" id="login-btn" style="width:100%;margin-top:8px;">
+        Se connecter
+      </button>
+    </form>
+  </div>
+</div>
+
+<script src="js/api.js"></script>
+<script>
+  // Redirect if already logged in
+  if (localStorage.getItem('erp_token')) {
+    window.location.href = 'app.html';
+  }
+
+  document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('login-btn');
+    const err = document.getElementById('login-error');
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+
+    btn.disabled  = true;
+    btn.textContent = 'Connexion…';
+    err.classList.remove('show');
+
+    try {
+      const data = await api.post('/auth/login', { email, password });
+      localStorage.setItem('erp_token',        data.access_token);
+      localStorage.setItem('erp_refresh_token', data.refresh_token);
+      localStorage.setItem('erp_expires_at',    data.expires_at);
+      localStorage.setItem('erp_user',          JSON.stringify(data.user));
+      window.location.href = 'app.html';
+    } catch (ex) {
+      err.textContent = ex.message || 'Erreur de connexion.';
+      err.classList.add('show');
+      btn.disabled    = false;
+      btn.textContent = 'Se connecter';
+    }
+  });
+</script>
+</body>
+</html>

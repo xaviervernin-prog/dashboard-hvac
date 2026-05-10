@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>ERP HVAC Dubai</title>
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1a1d27">
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-brand">HVAC <span>Dubai</span></div>
+  <div class="topbar-right">
+    <span class="topbar-date" id="topbar-date"></span>
+    <button class="bell-btn" id="bell-btn" title="Alertes">
+      🔔
+      <span class="bell-badge" id="bell-badge">0</span>
+    </button>
+    <button class="avatar-btn" id="avatar-btn" title="Mon compte"></button>
+  </div>
+</div>
+
+<!-- NOTIFICATION PANEL -->
+<div class="notif-panel" id="notif-panel">
+  <div class="notif-header">
+    <span class="notif-title">Alertes</span>
+    <button class="notif-close" id="notif-close">×</button>
+  </div>
+  <div id="notif-list"><div class="notif-empty">Aucune alerte</div></div>
+</div>
+
+<!-- MAIN LAYOUT -->
+<div class="layout">
+  <!-- SIDEBAR -->
+  <nav class="sidebar" id="sidebar">
+    <span class="sidebar-lbl">Principal</span>
+    <button class="nav-item active" data-tab="dashboard">
+      <span class="ic">📊</span><span class="nav-label">Tableau de bord</span>
+    </button>
+    <button class="nav-item" data-tab="clients">
+      <span class="ic">👥</span><span class="nav-label">Clients</span>
+    </button>
+    <button class="nav-item" data-tab="devis">
+      <span class="ic">📄</span><span class="nav-label">Devis</span>
+    </button>
+    <button class="nav-item" data-tab="interventions">
+      <span class="ic">🔧</span><span class="nav-label">Interventions</span>
+    </button>
+    <button class="nav-item" data-tab="factures">
+      <span class="ic">💰</span><span class="nav-label">Factures</span>
+    </button>
+    <span class="sidebar-lbl" style="margin-top:8px;">Catalogue</span>
+    <button class="nav-item" data-tab="articles">
+      <span class="ic">📦</span><span class="nav-label">Articles</span>
+    </button>
+    <span class="sidebar-lbl" data-roles="administrateur" style="margin-top:8px;">Gestion</span>
+    <button class="nav-item" data-tab="rh" data-roles="administrateur">
+      <span class="ic">👤</span><span class="nav-label">RH</span>
+    </button>
+    <button class="nav-item" data-tab="vehicules" data-roles="administrateur,commercial">
+      <span class="ic">🚗</span><span class="nav-label">Véhicules</span>
+    </button>
+  </nav>
+
+  <!-- CONTENT -->
+  <main class="main" id="main-content">
+    <div id="tab-dashboard" class="tab-panel active"></div>
+    <div id="tab-clients"       class="tab-panel"></div>
+    <div id="tab-devis"         class="tab-panel"></div>
+    <div id="tab-interventions" class="tab-panel"></div>
+    <div id="tab-factures"      class="tab-panel"></div>
+    <div id="tab-articles"      class="tab-panel"></div>
+    <div id="tab-rh"            class="tab-panel"></div>
+    <div id="tab-vehicules"     class="tab-panel"></div>
+  </main>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div id="toast-container"></div>
+
+<!-- SCRIPTS -->
+<script src="js/api.js"></script>
+<script src="js/utils.js"></script>
+<script src="js/modules/dashboard.js"></script>
+<script src="js/modules/clients.js"></script>
+<script src="js/modules/devis.js"></script>
+<script src="js/modules/interventions.js"></script>
+<script src="js/modules/factures.js"></script>
+<script src="js/modules/articles.js"></script>
+<script src="js/modules/rh.js"></script>
+<script src="js/modules/vehicules.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
