@@ -3,7 +3,7 @@ from pathlib import Path
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse
+from fastapi.responses import FileResponse, Response
 from fastapi.staticfiles import StaticFiles
 
 from app.config import get_settings
@@ -62,6 +62,14 @@ def create_app() -> FastAPI:
     @app.get("/health")
     async def health():
         return {"status": "ok", "environment": settings.environment}
+
+    @app.get("/sw.js", include_in_schema=False)
+    async def service_worker():
+        sw_path = FRONTEND_DIR / "static" / "sw.js"
+        response = FileResponse(str(sw_path), media_type="application/javascript")
+        response.headers["Service-Worker-Allowed"] = "/"
+        response.headers["Cache-Control"] = "no-cache"
+        return response
 
     @app.get("/{full_path:path}", include_in_schema=False)
     async def serve_spa(full_path: str):

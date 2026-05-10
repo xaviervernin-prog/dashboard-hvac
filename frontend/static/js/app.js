@@ -87,6 +87,14 @@ try {
   document.getElementById('tph-date').textContent = new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
 } catch (_) {}
 
+// --- Service Worker (PWA) ---
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/sw.js', { scope: '/' })
+      .catch(() => {});
+  });
+}
+
 // --- Init ---
 document.addEventListener('DOMContentLoaded', () => {
   AgendaModule.load();
