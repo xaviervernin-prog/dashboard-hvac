@@ -1,0 +1,42 @@
+name: Feature
+description: Proposer une nouvelle fonctionnalité
+labels: [enhancement]
+
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Quelle fonctionnalité souhaitez-vous ?
+    validations:
+      required: true
+
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Cas d'usage
+      description: Pourquoi cette fonctionnalité serait-elle utile ? Quel problème résout-elle ?
+    validations:
+      required: true
+
+  - type: dropdown
+    id: module
+    attributes:
+      label: Module concerné
+      options:
+        - Clients
+        - Articles
+        - Devis
+        - Facturation
+        - Agenda
+        - Nouveau module
+        - Core / Infrastructure
+        - Frontend / UI
+    validations:
+      required: true
+
+  - type: textarea
+    id: implementation
+    attributes:
+      label: Pistes d'implémentation
+      description: Idées sur comment implémenter cette fonctionnalité (optionnel)
