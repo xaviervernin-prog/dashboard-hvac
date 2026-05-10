@@ -1,0 +1,32 @@
+{
+  "name": "HVAC Dubai Dashboard",
+  "short_name": "HVAC Dubai",
+  "description": "Tableau de bord de gestion HVAC Dubai",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#f0f2f5",
+  "theme_color": "#1a1d27",
+  "lang": "fr",
+  "icons": [
+    {
+      "src": "/static/icons/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Agenda",
+      "url": "/?tab=agenda",
+      "description": "Voir l'agenda du jour"
+    },
+    {
+      "name": "Clients",
+      "url": "/?tab=clients",
+      "description": "Gérer les clients"
+    }
+  ]
+}

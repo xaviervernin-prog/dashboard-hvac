@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: hvac-dashboard-test
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: ENVIRONMENT
+        value: test
+      - key: DEBUG
+        value: "true"
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_KEY
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
