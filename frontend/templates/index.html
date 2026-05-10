@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>HVAC Dubai — Tableau de bord</title>
+<link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+
+<div class="topbar">
+  <h1>HVAC Dubai — Tableau de bord</h1>
+  <div class="topbar-right">
+    <div class="topbar-date" id="hDate"></div>
+    <button class="bell-btn" onclick="toggleNotifPanel(event)" id="bell-btn" title="Notifications">
+      🔔<span class="bell-badge" id="bell-badge">0</span>
+    </button>
+    <button class="avatar-btn" onclick="openProfile()" id="avatar-btn" title="Mon profil">
+      <span id="avatar-text">?</span>
+    </button>
+  </div>
+</div>
+
+<div id="notif-panel" class="notif-panel" style="display:none" onclick="event.stopPropagation()">
+  <div class="notif-header">
+    <span class="notif-title">Notifications</span>
+    <button class="notif-close" onclick="toggleNotifPanel(event)">×</button>
+  </div>
+  <div id="notif-list"></div>
+</div>
+
+<div class="layout">
+  <nav class="sidebar">
+    <div class="sidebar-lbl">Navigation</div>
+    <button class="nav-item active" onclick="switchTab('agenda')"><span class="ic">📅</span> Agenda</button>
+    <button class="nav-item" onclick="switchTab('clients')"><span class="ic">👤</span> Clients</button>
+    <button class="nav-item" onclick="switchTab('articles')"><span class="ic">🔧</span> Articles</button>
+    <button class="nav-item" onclick="switchTab('devis')"><span class="ic">📋</span> Devis</button>
+    <button class="nav-item" onclick="switchTab('facturation')"><span class="ic">💰</span> Facturation</button>
+  </nav>
+  <div class="main">
+
+    <!-- AGENDA -->
+    <div id="tab-agenda" class="tab-panel active">
+      <div class="page-title">Agenda</div>
+      <div id="today-plan" style="display:none" class="today-plan">
+        <div class="today-plan-hd">
+          <span class="tph-label">Plan du jour</span>
+          <span class="tph-date" id="tph-date"></span>
+        </div>
+        <div class="today-items" id="today-items"></div>
+      </div>
+      <div class="cal-nav">
+        <button class="cnnav" onclick="AgendaModule.changeMonth(-1)">&#8592;</button>
+        <span class="ml" id="cal-label"></span>
+        <div style="display:flex;gap:8px;">
+          <button class="btn-today" onclick="AgendaModule.goToday()">Aujourd'hui</button>
+          <button class="cnnav" onclick="AgendaModule.changeMonth(1)">&#8594;</button>
+        </div>
+      </div>
+      <div class="cal-grid">
+        <div class="cal-dow"><span>Lun</span><span>Mar</span><span>Mer</span><span>Jeu</span><span>Ven</span><span>Sam</span><span>Dim</span></div>
+        <div class="cal-days" id="cal-days"></div>
+      </div>
+    </div>
+
+    <!-- CLIENTS -->
+    <div id="tab-clients" class="tab-panel">
+      <div class="page-title">Clients</div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="lbl">Total</div><div class="val" id="s-ct">0</div></div>
+        <div class="stat-card"><div class="lbl">Actifs</div><div class="val" id="s-ca">0</div><div class="sub">en projet</div></div>
+        <div class="stat-card"><div class="lbl">Prospects</div><div class="val" id="s-cp">0</div></div>
+      </div>
+      <div class="table-card">
+        <div class="table-header">
+          <h3>Clients</h3>
+          <div class="table-header-actions">
+            <button class="btn-filter" id="ft-clients" onclick="toggleFilters('clients')"><span class="filter-dot"></span>🔍 Filtres</button>
+            <button class="btn-p" onclick="ClientsModule.open(null)">+ Ajouter</button>
+          </div>
+        </div>
+        <div class="filter-bar" id="fb-clients" style="display:none">
+          <input type="text" id="fq-clients" placeholder="Rechercher nom, entreprise…" oninput="ClientsModule.render();updateFilterBtn('clients')">
+          <select id="fs-clients" onchange="ClientsModule.render();updateFilterBtn('clients')">
+            <option value="">Tous statuts</option>
+            <option value="actif">Actif</option>
+            <option value="prospect">Prospect</option>
+            <option value="inactif">Inactif</option>
+          </select>
+        </div>
+        <div class="tscroll"><table>
+          <thead><tr><th>Nom</th><th>Entreprise</th><th>Téléphone</th><th>Email</th><th>Statut</th></tr></thead>
+          <tbody id="tb-clients"><tr><td colspan="5" class="empty-state">Chargement…</td></tr></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- ARTICLES -->
+    <div id="tab-articles" class="tab-panel">
+      <div class="page-title">Articles</div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="lbl">Références</div><div class="val" id="s-at">0</div></div>
+      </div>
+      <div class="table-card">
+        <div class="table-header">
+          <h3>Catalogue</h3>
+          <div class="table-header-actions">
+            <button class="btn-filter" id="ft-articles" onclick="toggleFilters('articles')"><span class="filter-dot"></span>🔍 Filtres</button>
+            <button class="btn-p gray" onclick="ArticlesModule.openCatManager()">⚙️ Catégories</button>
+            <button class="btn-p" onclick="ArticlesModule.open(null)">+ Ajouter</button>
+          </div>
+        </div>
+        <div class="filter-bar" id="fb-articles" style="display:none">
+          <input type="text" id="fq-articles" placeholder="Rechercher réf., désignation…" oninput="ArticlesModule.render();updateFilterBtn('articles')">
+          <select id="fs-articles" onchange="ArticlesModule.render();updateFilterBtn('articles')">
+            <option value="">Toutes catégories</option>
+          </select>
+        </div>
+        <div class="tscroll"><table>
+          <thead><tr><th>Réf.</th><th>Désignation</th><th>Catégorie</th><th>Prix (AED)</th><th>Unité</th></tr></thead>
+          <tbody id="tb-articles"><tr><td colspan="5" class="empty-state">Chargement…</td></tr></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- DEVIS -->
+    <div id="tab-devis" class="tab-panel">
+      <div class="page-title">Devis</div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="lbl">Total</div><div class="val" id="s-dt">0</div></div>
+        <div class="stat-card"><div class="lbl">Envoyés</div><div class="val" id="s-da">0</div></div>
+        <div class="stat-card"><div class="lbl">Acceptés</div><div class="val" id="s-dv">0</div></div>
+        <div class="stat-card"><div class="lbl">Montant</div><div class="val" id="s-dm">0</div><div class="sub">AED</div></div>
+      </div>
+      <div class="table-card">
+        <div class="table-header">
+          <h3>Devis</h3>
+          <div class="table-header-actions">
+            <button class="btn-filter" id="ft-devis" onclick="toggleFilters('devis')"><span class="filter-dot"></span>🔍 Filtres</button>
+            <button class="btn-p" onclick="DevisModule.open(null)">+ Nouveau</button>
+          </div>
+        </div>
+        <div class="filter-bar" id="fb-devis" style="display:none">
+          <input type="text" id="fq-devis" placeholder="Rechercher client, N°, objet…" oninput="DevisModule.render();updateFilterBtn('devis')">
+          <select id="fs-devis" onchange="DevisModule.render();updateFilterBtn('devis')">
+            <option value="">Tous statuts</option>
+            <option value="brouillon">Brouillon</option>
+            <option value="envoye">Envoyé</option>
+            <option value="accepte">Accepté</option>
+            <option value="refuse">Refusé</option>
+          </select>
+        </div>
+        <div class="tscroll"><table>
+          <thead><tr><th>N°</th><th>Client</th><th>Objet</th><th>Date</th><th>Montant</th><th>Statut</th><th>Actions</th></tr></thead>
+          <tbody id="tb-devis"><tr><td colspan="7" class="empty-state">Chargement…</td></tr></tbody>
+        </table></div>
+      </div>
+    </div>
+
+    <!-- FACTURATION -->
+    <div id="tab-facturation" class="tab-panel">
+      <div class="page-title">Facturation</div>
+      <div class="stats-row">
+        <div class="stat-card"><div class="lbl">Total facturé</div><div class="val" id="s-ft">0</div><div class="sub">AED</div></div>
+        <div class="stat-card"><div class="lbl">Encaissé</div><div class="val" id="s-fe">0</div><div class="sub">AED</div></div>
+        <div class="stat-card"><div class="lbl">En attente</div><div class="val" id="s-fa">0</div><div class="sub">AED</div></div>
+        <div class="stat-card"><div class="lbl">En retard</div><div class="val" id="s-fr">0</div><div class="sub" style="color:var(--red)">AED</div></div>
+      </div>
+      <div class="table-card">
+        <div class="table-header">
+          <h3>Factures</h3>
+          <div class="table-header-actions">
+            <button class="btn-filter" id="ft-factures" onclick="toggleFilters('factures')"><span class="filter-dot"></span>🔍 Filtres</button>
+            <button class="btn-p" onclick="FacturationModule.open(null)">+ Nouvelle</button>
+          </div>
+        </div>
+        <div class="filter-bar" id="fb-factures" style="display:none">
+          <input type="text" id="fq-factures" placeholder="Rechercher client, N°…" oninput="FacturationModule.render();updateFilterBtn('factures')">
+          <select id="fs-factures" onchange="FacturationModule.render();updateFilterBtn('factures')">
+            <option value="">Tous statuts</option>
+            <option value="en_attente">En attente</option>
+            <option value="payee">Payée</option>
+            <option value="en_retard">En retard</option>
+            <option value="annulee">Annulée</option>
+          </select>
+        </div>
+        <div class="tscroll"><table>
+          <thead><tr><th>N°</th><th>Client</th><th>Devis</th><th>Émission</th><th>Échéance</th><th>Montant</th><th>Statut</th><th>Actions</th></tr></thead>
+          <tbody id="tb-factures"><tr><td colspan="8" class="empty-state">Chargement…</td></tr></tbody>
+        </table></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<nav class="bottom-nav">
+  <button class="active" onclick="switchTab('agenda')"><span class="ic">📅</span>Agenda</button>
+  <button onclick="switchTab('clients')"><span class="ic">👤</span>Clients</button>
+  <button onclick="switchTab('articles')"><span class="ic">🔧</span>Articles</button>
+  <button onclick="switchTab('devis')"><span class="ic">📋</span>Devis</button>
+  <button onclick="switchTab('facturation')"><span class="ic">💰</span>Factures</button>
+</nav>
+
+<!-- MODAL CLIENT -->
+<div class="overlay" id="ov-client"><div class="modal">
+  <div class="drag"></div>
+  <h3 id="client-modal-title">Nouveau client</h3>
+  <div class="msec">Identité</div>
+  <div class="form-row"><label>Nom *</label><input id="c-nom" placeholder="Al Maktoum"></div>
+  <div class="form-row"><label>Entreprise</label><input id="c-entreprise" placeholder="Al Futtaim Group"></div>
+  <div class="g2">
+    <div class="form-row"><label>Téléphone</label><input id="c-tel" type="tel" placeholder="+971 50 000 0000"></div>
+    <div class="form-row"><label>Email</label><input id="c-email" type="email" placeholder="contact@company.ae"></div>
+  </div>
+  <div class="form-row"><label>Statut</label>
+    <select id="c-st"><option value="prospect">Prospect</option><option value="actif">Actif</option><option value="inactif">Inactif</option></select>
+  </div>
+  <div class="form-row"><label>Adresse de facturation</label><input id="c-fact" placeholder="123 Sheikh Zayed Road, Dubai, UAE"></div>
+  <div class="msec">Chantiers</div>
+  <div id="chantiers-list"></div>
+  <button class="btn-add-ch" onclick="ClientsModule.addChantier()">+ Ajouter un chantier</button>
+  <div class="mact">
+    <button class="btn-del" id="c-del-btn" style="display:none" onclick="ClientsModule.del()">Supprimer</button>
+    <button class="btn-cancel" onclick="closeOv('client')">Annuler</button>
+    <button class="btn-save" onclick="ClientsModule.save()">Enregistrer</button>
+  </div>
+</div></div>
+
+<!-- MODAL ARTICLE -->
+<div class="overlay" id="ov-article"><div class="modal">
+  <div class="drag"></div>
+  <h3 id="article-modal-title">Nouvel article</h3>
+  <div class="g2">
+    <div class="form-row"><label>Référence</label><input id="a-ref" placeholder="Auto si vide"></div>
+    <div class="form-row"><label>Catégorie</label><select id="a-cat"></select></div>
+  </div>
+  <div class="form-row"><label>Désignation *</label><input id="a-nom" placeholder="Climatiseur Daikin 18000 BTU"></div>
+  <div class="form-row"><label>Description</label><textarea id="a-desc" placeholder="Détails optionnels..."></textarea></div>
+  <div class="g2">
+    <div class="form-row"><label>Prix unitaire (AED)</label><input type="number" id="a-prix" placeholder="0"></div>
+    <div class="form-row"><label>Unité</label><input id="a-unite" placeholder="unité"></div>
+  </div>
+  <div class="mact">
+    <button class="btn-del" id="a-del-btn" style="display:none" onclick="ArticlesModule.del()">Supprimer</button>
+    <button class="btn-cancel" onclick="closeOv('article')">Annuler</button>
+    <button class="btn-save" onclick="ArticlesModule.save()">Enregistrer</button>
+  </div>
+</div></div>
+
+<!-- MODAL DEVIS -->
+<div class="overlay" id="ov-devis"><div class="modal">
+  <div class="drag"></div>
+  <h3 id="devis-modal-title">Nouveau devis</h3>
+  <div id="devis-lock-banner" class="lock-banner" style="display:none">🔒 Devis accepté — articles et montant verrouillés.</div>
+  <div class="form-row"><label>Client *</label><select id="d-client"></select></div>
+  <div class="form-row"><label>Objet des travaux</label><input id="d-objet" placeholder="Installation HVAC villa Marina"></div>
+  <div class="form-row"><label>Statut</label>
+    <select id="d-st"><option value="brouillon">Brouillon</option><option value="envoye">Envoyé</option><option value="accepte">Accepté</option><option value="refuse">Refusé</option></select>
+  </div>
+  <div class="art-sec">
+    <div class="art-sec-t">Articles / Prestations</div>
+    <div id="devis-lines"></div>
+    <button class="btn-add-line" id="devis-add-line-btn" onclick="DevisModule.addLine()">+ Ajouter un article</button>
+    <div class="d-total">Total : <span id="d-total">0 AED</span></div>
+  </div>
+  <div class="form-row"><label>Montant manuel (AED) — si sans articles</label><input type="number" id="d-montant" placeholder="0"></div>
+  <div class="mact">
+    <button class="btn-del" id="d-del-btn" style="display:none" onclick="DevisModule.del()">Supprimer</button>
+    <button class="btn-cancel" onclick="closeOv('devis')">Annuler</button>
+    <button class="btn-save" onclick="DevisModule.save()">Enregistrer</button>
+  </div>
+</div></div>
+
+<!-- MODAL INTERVENTION -->
+<div class="overlay" id="ov-intervention"><div class="modal">
+  <div class="drag"></div>
+  <h3>Planifier une intervention</h3>
+  <div class="form-row"><label>Devis accepté *</label><select id="i-devis" onchange="AgendaModule.onDevisChange()"></select></div>
+  <div id="i-info" style="display:none" class="info-card"></div>
+  <div class="msec">Créneau</div>
+  <div class="g3">
+    <div class="form-row"><label>Date *</label><input type="date" id="i-date"></div>
+    <div class="form-row"><label>Début</label><input type="time" id="i-hd" value="08:00"></div>
+    <div class="form-row"><label>Fin</label><input type="time" id="i-hf" value="10:00"></div>
+  </div>
+  <div class="form-row"><label>Technicien(s)</label><input id="i-tech" placeholder="Nom du ou des techniciens"></div>
+  <div class="form-row"><label>Lieu d'intervention</label><input id="i-lieu" placeholder="Villa 12, Al Barsha 2, Dubai"></div>
+  <div class="form-row"><label>Notes</label><textarea id="i-notes" placeholder="Accès, codes, remarques..."></textarea></div>
+  <div class="mact">
+    <button class="btn-cancel" onclick="closeOv('intervention')">Annuler</button>
+    <button class="btn-save" onclick="AgendaModule.saveInterv()">Planifier</button>
+  </div>
+</div></div>
+
+<!-- DETAIL INTERVENTION -->
+<div class="det-overlay" id="det-overlay"><div class="det-card">
+  <div class="det-drag"></div>
+  <div class="det-head"><span id="det-badge"></span><span style="font-size:11px;color:var(--muted);font-weight:600;" id="det-num"></span></div>
+  <div class="det-title" id="det-title"></div>
+  <div id="det-rows"></div>
+  <div class="det-acts" id="det-acts"></div>
+</div></div>
+
+<!-- MODAL REPROG -->
+<div class="overlay" id="ov-reprog"><div class="mini-modal">
+  <div class="drag"></div>
+  <h3>Reprogrammer l'intervention</h3>
+  <div class="g3">
+    <div class="form-row"><label>Nouvelle date *</label><input type="date" id="r-date"></div>
+    <div class="form-row"><label>Début</label><input type="time" id="r-hd"></div>
+    <div class="form-row"><label>Fin</label><input type="time" id="r-hf"></div>
+  </div>
+  <div class="mact">
+    <button class="btn-cancel" onclick="closeOv('reprog')">Annuler</button>
+    <button class="btn-save" onclick="AgendaModule.saveReprog()">Confirmer</button>
+  </div>
+</div></div>
+
+<!-- MODAL FACTURE -->
+<div class="overlay" id="ov-facture"><div class="modal">
+  <div class="drag"></div>
+  <h3 id="facture-modal-title">Nouvelle facture</h3>
+  <div class="form-row"><label>Client *</label><select id="f-client"></select></div>
+  <div class="g2">
+    <div class="form-row"><label>Montant (AED) *</label><input type="number" id="f-montant" placeholder="0"></div>
+    <div class="form-row"><label>Date d'échéance</label><input type="date" id="f-ech"></div>
+  </div>
+  <div class="form-row"><label>Statut</label>
+    <select id="f-st"><option value="en_attente">En attente</option><option value="payee">Payée</option><option value="en_retard">En retard</option><option value="annulee">Annulée</option></select>
+  </div>
+  <div class="mact">
+    <button class="btn-del" id="f-del-btn" style="display:none" onclick="FacturationModule.del()">Supprimer</button>
+    <button class="btn-cancel" onclick="closeOv('facture')">Annuler</button>
+    <button class="btn-save" onclick="FacturationModule.save()">Enregistrer</button>
+  </div>
+</div></div>
+
+<!-- MODAL CATEGORIES -->
+<div class="overlay" id="ov-cats"><div class="modal">
+  <div class="drag"></div>
+  <h3>Gérer les catégories</h3>
+  <div id="cats-list"></div>
+  <div class="cat-add-row">
+    <input type="text" id="new-cat-input" placeholder="Nouvelle catégorie…" onkeypress="if(event.keyCode===13)ArticlesModule.addCat()">
+    <button class="btn-cat-add" onclick="ArticlesModule.addCat()">+ Ajouter</button>
+  </div>
+  <div class="mact">
+    <button class="btn-cancel" onclick="closeOv('cats')">Fermer</button>
+  </div>
+</div></div>
+
+<script src="/static/js/api.js"></script>
+<script src="/static/js/modules/clients.js"></script>
+<script src="/static/js/modules/articles.js"></script>
+<script src="/static/js/modules/devis.js"></script>
+<script src="/static/js/modules/facturation.js"></script>
+<script src="/static/js/modules/agenda.js"></script>
+<script src="/static/js/app.js"></script>
+</body>
+</html>
