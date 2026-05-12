@@ -79,7 +79,9 @@ class DevisService:
         )
         if not response.data:
             raise NotFoundError(f"Devis {devis_id} introuvable")
-        return response.data[0]
+        data = response.data[0]
+        data["lignes"] = data.pop(LIGNES_TABLE, [])
+        return data
 
     def create(self, payload: DevisCreate) -> dict:
         if payload.statut not in VALID_STATUTS:

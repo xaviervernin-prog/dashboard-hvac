@@ -19,10 +19,10 @@ def list_clients(
     skip: int = Query(0, ge=0),
     limit: int = Query(100, le=500),
     search: str = Query(None),
-    statut: str = Query(None),
+    actif: bool = Query(None),
     svc: ClientService = Depends(_service),
 ):
-    return svc.list(skip=skip, limit=limit, search=search, statut=statut)
+    return svc.list(skip=skip, limit=limit, search=search, actif=actif)
 
 
 @router.get("/{client_id}", response_model=ClientRead)

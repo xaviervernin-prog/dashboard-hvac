@@ -75,7 +75,9 @@ class FacturationService:
         )
         if not response.data:
             raise NotFoundError(f"Facture {facture_id} introuvable")
-        return response.data[0]
+        data = response.data[0]
+        data["lignes"] = data.pop(LIGNES_TABLE, [])
+        return data
 
     def create(self, payload: FactureCreate) -> dict:
         if payload.statut not in VALID_STATUTS:
