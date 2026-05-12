@@ -28,7 +28,7 @@ def test_create_duplicate_reference_raises_conflict():
         {"id": str(uuid.uuid4())}
     ]
     svc = _make_service(db)
-    payload = ArticleCreate(reference="ART-001", designation="Test", prix_unitaire=100.0)
+    payload = ArticleCreate(reference="ART-001", designation="Test", prix_vente_ht=100.0)
     with pytest.raises(ConflictError):
         svc.create(payload)
 

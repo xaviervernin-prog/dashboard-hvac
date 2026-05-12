@@ -8,18 +8,22 @@ from pydantic import BaseModel, Field
 class DevisLigne(BaseModel):
     article_id: Optional[UUID] = None
     designation: str
+    description: Optional[str] = None
     quantite: float = Field(gt=0)
-    prix_unitaire: float = Field(ge=0)
-    total: float = Field(ge=0)
+    prix_unitaire_ht: float = Field(ge=0)
+    taux_tva: float = 5
+    ordre: int = 0
 
 
 class DevisBase(BaseModel):
     client_id: UUID
-    objet: str
-    statut: str = "brouillon"
+    chantier_id: Optional[UUID] = None
+    objet: Optional[str] = None
+    date_devis: Optional[date] = None
     date_validite: Optional[date] = None
+    statut: str = "brouillon"
     notes: Optional[str] = None
-    montant_manuel: Optional[float] = Field(None, ge=0)
+    conditions: Optional[str] = None
     lignes: list[DevisLigne] = []
 
 
@@ -34,7 +38,9 @@ class DevisUpdate(DevisBase):
 class DevisRead(DevisBase):
     id: UUID
     numero: str
-    montant_total: float
+    sous_total_ht: float
+    montant_tva: float
+    total_ttc: float
     created_at: datetime
     updated_at: datetime
 

@@ -5,19 +5,18 @@ from uuid import UUID
 from pydantic import BaseModel, EmailStr
 
 
-class Chantier(BaseModel):
-    nom: str
-    adresse: str
-
-
 class ClientBase(BaseModel):
     nom: str
-    entreprise: Optional[str] = None
+    prenom: Optional[str] = None
     email: Optional[EmailStr] = None
     telephone: Optional[str] = None
-    statut: str = "actif"
-    adresse_facturation: Optional[str] = None
-    chantiers: list[Chantier] = []
+    type: str = "particulier"
+    entreprise: Optional[str] = None
+    trn: Optional[str] = None
+    adresse: Optional[str] = None
+    emirat: str = "Dubai"
+    notes: Optional[str] = None
+    actif: bool = True
 
 
 class ClientCreate(ClientBase):

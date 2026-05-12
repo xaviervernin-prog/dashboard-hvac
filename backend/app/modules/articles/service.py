@@ -10,7 +10,7 @@ from app.modules.articles.schemas import ArticleCreate, ArticleUpdate, Categorie
 logger = logging.getLogger(__name__)
 
 ARTICLES_TABLE = "articles"
-CATEGORIES_TABLE = "categories"
+CATEGORIES_TABLE = "categories_article"
 
 
 class ArticleService:
@@ -32,7 +32,7 @@ class ArticleService:
         )
         if existing.data:
             raise ConflictError(f"La catégorie '{payload.nom}' existe déjà")
-        response = self.db.table(CATEGORIES_TABLE).insert({"nom": payload.nom}).execute()
+        response = self.db.table(CATEGORIES_TABLE).insert(payload.model_dump()).execute()
         return response.data[0]
 
     def delete_category(self, category_id: UUID) -> None:
@@ -55,7 +55,7 @@ class ArticleService:
         search: Optional[str] = None,
         categorie_id: Optional[UUID] = None,
     ) -> list[dict]:
-        query = self.db.table(ARTICLES_TABLE).select("*, categories(nom)")
+        query = self.db.table(ARTICLES_TABLE).select(f"*, {CATEGORIES_TABLE}(nom)")
         if search:
             query = query.or_(
                 f"reference.ilike.%{search}%,designation.ilike.%{search}%"
@@ -68,7 +68,7 @@ class ArticleService:
     def get(self, article_id: UUID) -> dict:
         response = (
             self.db.table(ARTICLES_TABLE)
-            .select("*, categories(nom)")
+            .select(f"*, {CATEGORIES_TABLE}(nom)")
             .eq("id", str(article_id))
             .execute()
         )

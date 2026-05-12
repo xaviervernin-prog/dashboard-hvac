@@ -7,6 +7,7 @@ from pydantic import BaseModel, Field
 
 class CategorieBase(BaseModel):
     nom: str
+    description: Optional[str] = None
 
 
 class CategorieCreate(CategorieBase):
@@ -23,10 +24,14 @@ class CategorieRead(CategorieBase):
 class ArticleBase(BaseModel):
     reference: str
     designation: str
-    categorie_id: Optional[UUID] = None
-    prix_unitaire: float = Field(ge=0)
-    unite: str = "unité"
     description: Optional[str] = None
+    categorie_id: Optional[UUID] = None
+    prix_vente_ht: float = Field(ge=0)
+    prix_achat_ht: Optional[float] = Field(None, ge=0)
+    stock_actuel: float = 0
+    stock_minimum: float = 0
+    unite: str = "u"
+    actif: bool = True
 
 
 class ArticleCreate(ArticleBase):

@@ -24,9 +24,9 @@ def test_stats_empty():
 def test_stats_with_data():
     db = MagicMock()
     db.table.return_value.select.return_value.execute.return_value.data = [
-        {"montant": 1000.0, "statut": "payee"},
-        {"montant": 500.0, "statut": "en_attente"},
-        {"montant": 200.0, "statut": "en_retard"},
+        {"total_ttc": 1000.0, "montant_paye": 1000.0, "statut": "payee"},
+        {"total_ttc": 500.0, "montant_paye": 0.0, "statut": "envoyee"},
+        {"total_ttc": 200.0, "montant_paye": 0.0, "statut": "en_retard"},
     ]
     svc = _make_service(db)
     stats = svc.stats()
@@ -38,10 +38,8 @@ def test_stats_with_data():
 
 def test_invalid_statut_raises():
     db = MagicMock()
-    db.rpc.return_value.execute.return_value.data = "FAC-001"
+    db.rpc.return_value.execute.return_value.data = "FAC-2026-0001"
     svc = _make_service(db)
-    payload = FactureCreate(
-        client_id=uuid.uuid4(), montant=100.0, statut="invalide"
-    )
+    payload = FactureCreate(client_id=uuid.uuid4(), statut="invalide")
     with pytest.raises(ValidationError):
         svc.create(payload)

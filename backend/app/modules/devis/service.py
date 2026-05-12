@@ -5,12 +5,41 @@ from uuid import UUID
 from supabase import Client
 
 from app.core.exceptions import NotFoundError, ValidationError
-from app.modules.devis.schemas import DevisCreate, DevisUpdate
+from app.modules.devis.schemas import DevisCreate, DevisLigne, DevisUpdate
 
 logger = logging.getLogger(__name__)
 
 TABLE = "devis"
-VALID_STATUTS = {"brouillon", "envoye", "accepte", "refuse"}
+LIGNES_TABLE = "devis_lignes"
+VALID_STATUTS = {"brouillon", "envoye", "accepte", "refuse", "expire"}
+
+
+def _compute_totals(lignes: list[DevisLigne]) -> tuple[float, float, float]:
+    sous_total_ht = sum(l.quantite * l.prix_unitaire_ht for l in lignes)
+    montant_tva = sum(l.quantite * l.prix_unitaire_ht * l.taux_tva / 100 for l in lignes)
+    total_ttc = sous_total_ht + montant_tva
+    return round(sous_total_ht, 2), round(montant_tva, 2), round(total_ttc, 2)
+
+
+def _ligne_to_db(ligne: DevisLigne, devis_id: str) -> dict:
+    qte = ligne.quantite
+    pu = ligne.prix_unitaire_ht
+    tva = ligne.taux_tva
+    ht = round(qte * pu, 2)
+    tva_amt = round(ht * tva / 100, 2)
+    return {
+        "devis_id": devis_id,
+        "article_id": str(ligne.article_id) if ligne.article_id else None,
+        "designation": ligne.designation,
+        "description": ligne.description,
+        "quantite": qte,
+        "prix_unitaire_ht": pu,
+        "taux_tva": tva,
+        "montant_ht": ht,
+        "montant_tva": tva_amt,
+        "montant_ttc": round(ht + tva_amt, 2),
+        "ordre": ligne.ordre,
+    }
 
 
 class DevisService:
@@ -44,7 +73,7 @@ class DevisService:
     def get(self, devis_id: UUID) -> dict:
         response = (
             self.db.table(TABLE)
-            .select("*, clients(nom, entreprise)")
+            .select(f"*, clients(nom, entreprise), {LIGNES_TABLE}(*)")
             .eq("id", str(devis_id))
             .execute()
         )
@@ -56,55 +85,55 @@ class DevisService:
         if payload.statut not in VALID_STATUTS:
             raise ValidationError(f"Statut invalide : {payload.statut}")
 
-        lignes = [l.model_dump() for l in payload.lignes]
-        for ligne in lignes:
-            if ligne.get("article_id"):
-                ligne["article_id"] = str(ligne["article_id"])
+        sous_total_ht, montant_tva, total_ttc = _compute_totals(payload.lignes)
 
-        montant_total = (
-            sum(l["total"] for l in lignes)
-            if lignes
-            else (payload.montant_manuel or 0.0)
-        )
-
-        data = payload.model_dump(exclude={"lignes", "montant_manuel"})
+        data = payload.model_dump(exclude={"lignes"})
         data["client_id"] = str(payload.client_id)
-        data["lignes"] = lignes
-        data["montant_manuel"] = payload.montant_manuel
-        data["montant_total"] = montant_total
+        if data.get("chantier_id"):
+            data["chantier_id"] = str(payload.chantier_id)
         data["numero"] = self._next_numero()
+        data["sous_total_ht"] = sous_total_ht
+        data["montant_tva"] = montant_tva
+        data["total_ttc"] = total_ttc
 
         response = self.db.table(TABLE).insert(data).execute()
-        logger.info("Devis créé : %s", data["numero"])
-        return response.data[0]
+        devis = response.data[0]
+        logger.info("Devis créé : %s", devis["numero"])
+
+        if payload.lignes:
+            lignes_data = [_ligne_to_db(l, devis["id"]) for l in payload.lignes]
+            self.db.table(LIGNES_TABLE).insert(lignes_data).execute()
+
+        return self.get(UUID(devis["id"]))
 
     def update(self, devis_id: UUID, payload: DevisUpdate) -> dict:
         existing = self.get(devis_id)
         if existing["statut"] == "accepte" and payload.statut != "accepte":
             raise ValidationError("Un devis accepté ne peut pas être modifié")
+        if payload.statut not in VALID_STATUTS:
+            raise ValidationError(f"Statut invalide : {payload.statut}")
 
-        lignes = [l.model_dump() for l in payload.lignes]
-        for ligne in lignes:
-            if ligne.get("article_id"):
-                ligne["article_id"] = str(ligne["article_id"])
-
-        montant_total = (
-            sum(l["total"] for l in lignes)
-            if lignes
-            else (payload.montant_manuel or 0.0)
-        )
+        sous_total_ht, montant_tva, total_ttc = _compute_totals(payload.lignes)
 
         data = payload.model_dump(exclude={"lignes"}, exclude_unset=True)
         data["client_id"] = str(payload.client_id)
-        data["lignes"] = lignes
-        data["montant_total"] = montant_total
+        if payload.chantier_id:
+            data["chantier_id"] = str(payload.chantier_id)
+        data["sous_total_ht"] = sous_total_ht
+        data["montant_tva"] = montant_tva
+        data["total_ttc"] = total_ttc
 
-        response = (
-            self.db.table(TABLE).update(data).eq("id", str(devis_id)).execute()
-        )
-        return response.data[0]
+        self.db.table(TABLE).update(data).eq("id", str(devis_id)).execute()
+
+        self.db.table(LIGNES_TABLE).delete().eq("devis_id", str(devis_id)).execute()
+        if payload.lignes:
+            lignes_data = [_ligne_to_db(l, str(devis_id)) for l in payload.lignes]
+            self.db.table(LIGNES_TABLE).insert(lignes_data).execute()
+
+        return self.get(devis_id)
 
     def delete(self, devis_id: UUID) -> None:
         self.get(devis_id)
+        self.db.table(LIGNES_TABLE).delete().eq("devis_id", str(devis_id)).execute()
         self.db.table(TABLE).delete().eq("id", str(devis_id)).execute()
         logger.info("Devis supprimé : %s", devis_id)

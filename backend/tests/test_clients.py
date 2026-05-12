@@ -35,10 +35,10 @@ def test_create_client():
     db = MagicMock()
     client_id = str(uuid.uuid4())
     db.table.return_value.insert.return_value.execute.return_value.data = [
-        {"id": client_id, "nom": "Nouveau Client", "statut": "actif"}
+        {"id": client_id, "nom": "Nouveau Client", "emirat": "Dubai", "actif": True}
     ]
     svc = _make_service(db)
-    payload = ClientCreate(nom="Nouveau Client")
+    payload = ClientCreate(nom="Nouveau Client", emirat="Dubai")
     result = svc.create(payload)
     assert result["id"] == client_id
     db.table.return_value.insert.assert_called_once()

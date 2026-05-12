@@ -6,14 +6,16 @@ from pydantic import BaseModel
 
 
 class InterventionBase(BaseModel):
-    devis_id: UUID
     client_id: UUID
+    chantier_id: Optional[UUID] = None
+    type: str = "depannage"
+    statut: str = "planifiee"
     date_debut: datetime
-    date_fin: Optional[datetime] = None
-    techniciens: list[str] = []
-    lieu: Optional[str] = None
-    statut: str = "planifie"
+    date_fin_prevue: Optional[datetime] = None
+    date_fin_reelle: Optional[datetime] = None
+    description: Optional[str] = None
     notes: Optional[str] = None
+    rapport: Optional[str] = None
 
 
 class InterventionCreate(InterventionBase):
@@ -26,6 +28,7 @@ class InterventionUpdate(InterventionBase):
 
 class InterventionRead(InterventionBase):
     id: UUID
+    numero: str
     created_at: datetime
     updated_at: datetime
 

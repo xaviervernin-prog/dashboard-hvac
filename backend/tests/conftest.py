@@ -28,12 +28,13 @@ def client(mock_db):
 def sample_client_data():
     return {
         "nom": "Dupont HVAC",
+        "prenom": "Jean",
         "entreprise": "Dupont & Fils",
         "email": "contact@dupont.ae",
         "telephone": "+971501234567",
-        "statut": "actif",
-        "adresse_facturation": "Villa 5, Jumeirah, Dubai",
-        "chantiers": [],
+        "type": "entreprise",
+        "emirat": "Dubai",
+        "actif": True,
     }
 
 
@@ -42,6 +43,6 @@ def sample_article_data():
     return {
         "reference": "ART-001",
         "designation": "Climatiseur 2.5 Kw",
-        "prix_unitaire": 1500.0,
-        "unite": "unité",
+        "prix_vente_ht": 1500.0,
+        "unite": "u",
     }

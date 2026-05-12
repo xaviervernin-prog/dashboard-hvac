@@ -4,12 +4,13 @@ from uuid import UUID
 
 from supabase import Client
 
-from app.core.exceptions import ConflictError, NotFoundError
+from app.core.exceptions import NotFoundError
 from app.modules.clients.schemas import ClientCreate, ClientUpdate
 
 logger = logging.getLogger(__name__)
 
 TABLE = "clients"
+VALID_TYPES = {"particulier", "entreprise", "copropriete"}
 
 
 class ClientService:
@@ -21,13 +22,13 @@ class ClientService:
         skip: int = 0,
         limit: int = 100,
         search: Optional[str] = None,
-        statut: Optional[str] = None,
+        actif: Optional[bool] = None,
     ) -> list[dict]:
         query = self.db.table(TABLE).select("*")
         if search:
             query = query.or_(f"nom.ilike.%{search}%,entreprise.ilike.%{search}%")
-        if statut:
-            query = query.eq("statut", statut)
+        if actif is not None:
+            query = query.eq("actif", actif)
         response = query.order("nom").range(skip, skip + limit - 1).execute()
         return response.data
 
@@ -41,7 +42,6 @@ class ClientService:
 
     def create(self, payload: ClientCreate) -> dict:
         data = payload.model_dump()
-        data["chantiers"] = [c.model_dump() for c in payload.chantiers]
         response = self.db.table(TABLE).insert(data).execute()
         logger.info("Client créé : %s", response.data[0].get("id"))
         return response.data[0]
@@ -49,8 +49,6 @@ class ClientService:
     def update(self, client_id: UUID, payload: ClientUpdate) -> dict:
         self.get(client_id)
         data = payload.model_dump(exclude_unset=True)
-        if "chantiers" in data:
-            data["chantiers"] = [c.model_dump() for c in payload.chantiers]
         response = (
             self.db.table(TABLE).update(data).eq("id", str(client_id)).execute()
         )
