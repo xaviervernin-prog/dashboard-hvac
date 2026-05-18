@@ -421,11 +421,10 @@ function showLogin() {
           Continuer avec Google
         </button>
         <div class="login-sep">ou</div>
-        <div class="login-field"><label>Email</label><input type="email" id="le" placeholder="votre@email.com" onkeypress="if(event.key==='Enter')doMagicLink()"></div>
-        <button class="login-btn" id="login-btn" onclick="doMagicLink()">Recevoir un lien de connexion</button>
+        <div class="login-field"><label>Email</label><input type="email" id="le" placeholder="votre@email.com" onkeypress="if(event.key==='Enter')doLogin()"></div>
+        <div class="login-field"><label>Mot de passe</label><input type="password" id="lp" placeholder="••••••••" onkeypress="if(event.key==='Enter')doLogin()"></div>
+        <button class="login-btn" id="login-btn" onclick="doLogin()">Se connecter</button>
         <div class="login-err" id="login-err"></div>
-        <div class="login-ok" id="login-ok">✓ Lien envoyé ! Vérifiez votre boîte mail et cliquez sur le lien.</div>
-        <div class="login-magic-link">Pas encore de compte ? Entrez simplement votre email ci-dessus.</div>
       </div>
     </div>`;
 }
@@ -435,30 +434,22 @@ async function doGoogleLogin() {
     provider: 'google',
     options: { redirectTo: window.location.origin + window.location.pathname }
   });
-  if (error) {
-    alert('Erreur Google : vérifiez que le provider Google est activé dans Supabase.');
-  }
+  if (error) alert('Google non activé dans Supabase.');
 }
 
-async function doMagicLink() {
+async function doLogin() {
   const email = (document.getElementById('le').value || '').trim();
+  const password = document.getElementById('lp').value;
   const errEl = document.getElementById('login-err');
-  const okEl = document.getElementById('login-ok');
-  errEl.style.display = 'none'; okEl.style.display = 'none';
-  if (!email) { errEl.textContent = 'Entrez votre adresse email.'; errEl.style.display = 'block'; return; }
+  errEl.style.display = 'none';
+  if (!email || !password) { errEl.textContent = 'Email et mot de passe requis.'; errEl.style.display = 'block'; return; }
   const btn = document.getElementById('login-btn');
-  btn.textContent = 'Envoi…'; btn.disabled = true;
-  const { error } = await sb.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: window.location.origin + window.location.pathname, shouldCreateUser: true }
-  });
+  btn.textContent = 'Connexion…'; btn.disabled = true;
+  const { error } = await sb.auth.signInWithPassword({ email, password });
   if (error) {
-    errEl.textContent = 'Erreur : ' + error.message;
+    errEl.textContent = 'Email ou mot de passe incorrect.';
     errEl.style.display = 'block';
-    btn.textContent = 'Recevoir un lien de connexion'; btn.disabled = false;
-  } else {
-    okEl.style.display = 'block';
-    btn.textContent = 'Recevoir un lien de connexion'; btn.disabled = false;
+    btn.textContent = 'Se connecter'; btn.disabled = false;
   }
 }
 
@@ -859,10 +850,10 @@ function renderCalendar() {
   for (let i=1; i<=(endDow===0?0:7-endDow); i++) days += `<div class="cal-day other-month"><div class="dn">${i}</div></div>`;
   return `
     <div class="cal-nav">
-      <button class="cnnav" onclick="calPrev()">◀</button>
+      <button class="cnnav" onclick="calPrev()">◄</button>
       <div class="ml">${mNames[month]} ${year}</div>
       <button class="btn-today" onclick="calToday()">Aujourd'hui</button>
-      <button class="cnnav" onclick="calNext()">▶</button>
+      <button class="cnnav" onclick="calNext()">►</button>
     </div>
     <div class="cal-grid">
       <div class="cal-dow"><span>Lun</span><span>Mar</span><span>Mer</span><span>Jeu</span><span>Ven</span><span>Sam</span><span>Dim</span></div>
