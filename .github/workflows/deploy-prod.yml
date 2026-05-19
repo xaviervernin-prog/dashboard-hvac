@@ -1,0 +1,30 @@
+name: Deploy — Production
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    name: Deploy to production
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare build
+        run: |
+          mkdir -p _deploy
+          cp app.html _deploy/app.html
+          cp index.html _deploy/index.html
+
+      - name: Deploy to GitHub Pages — root
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: _deploy
+          keep_files: true
+          commit_message: "deploy(prod): ${{ github.sha }}"
