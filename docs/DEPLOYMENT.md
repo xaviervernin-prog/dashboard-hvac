@@ -21,7 +21,7 @@ deploy-staging.yml           deploy-prod.yml
        │                               │
   Checkout +                    Checkout +
   cp app.html                   cp app.html
-  _deploy/staging/              _deploy/
+  _deploy/                      _deploy/
        │                               │
        ▼                               ▼
 peaceiris/actions-gh-pages   peaceiris/actions-gh-pages
@@ -51,7 +51,7 @@ GitHub Pages doit être configuré pour servir depuis la branche `gh-pages` :
 3. **Branch** → `gh-pages` / `/ (root)`
 4. Sauvegarder
 
-> ⚠️ **Action requise** : Cette configuration est manuelle et ne peut pas être faite via git.  
+> ⚠️ **Action requise** : Cette configuration est manuelle.  
 > Actuellement GitHub Pages sert depuis `main`. À migrer vers `gh-pages` pour que la pipeline CI/CD prenne effet.
 
 ---
@@ -68,12 +68,12 @@ git pull origin staging
 # 2. Créer une branche de feature
 git checkout -b feature/ma-feature
 
-# 3. Travailler sur app.html
-# ... modifications ...
+# 3. Modifier app.html
+# ...
 
 # 4. Committer
 git add app.html
-git commit -m "feat: description de la feature"
+git commit -m "feat: description"
 
 # 5. Merger sur staging
 git checkout staging
@@ -95,8 +95,6 @@ git push origin main
 
 ## Vérification du déploiement
 
-Après un push, vérifier l'état du déploiement :
-
 1. Aller sur https://github.com/xaviervernin-prog/dashboard-hvac/actions
 2. Vérifier que le workflow est passé (coche verte)
 3. Si échec, cliquer sur le job pour voir les logs
@@ -116,33 +114,26 @@ git revert HEAD
 git push origin main
 
 # Option 2 : Pointer sur un commit spécifique
-git checkout main
 git reset --hard <sha-du-commit-stable>
 git push --force-with-lease origin main
 ```
-
-> `--force-with-lease` est plus sûr que `--force` : il échoue si quelqu'un a pushé entre temps.
 
 ---
 
 ## Variables d'environnement
 
-Il n'y a pas de variables d'environnement au sens CI/CD — la configuration Supabase est directement dans `app.html`.
-
-Si la clé ou l'URL Supabase change, modifier dans `app.html` :
+Il n'y a pas de variables d'environnement au sens CI/CD. La configuration Supabase est dans `app.html` :
 
 ```javascript
 const SUPABASE_URL = 'https://hdbyydietidgzoudlias.supabase.co';
 const SUPABASE_KEY = 'eyJ...'; // Clé anon — publique par design
 ```
 
-La clé `anon` est publique et destinée à être exposée côté client. La sécurité est gérée par les politiques RLS Supabase, pas par la confidentialité de cette clé.
+La clé `anon` est publique et destinée à être exposée côté client. La sécurité est gérée par RLS.
 
 ---
 
 ## Surveillance
-
-Aucun monitoring actif en place. Pour surveiller manuellement :
 
 - **Logs Supabase** : Dashboard → Logs → API / Auth / Postgres
 - **Erreurs JS** : Console du navigateur sur l'app

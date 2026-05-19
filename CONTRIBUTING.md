@@ -85,7 +85,7 @@ dashboard-hvac/
 ├── .github/
 │   └── workflows/
 │       ├── deploy-prod.yml       # CI/CD → main → prod
-│       └── deploy-staging.yml    # CI/CD → staging → staging
+│       └── deploy-staging.yml    # CI/CD → staging → staging/
 ├── docs/
 │   ├── ARCHITECTURE.md
 │   ├── DATABASE.md
@@ -105,7 +105,6 @@ Ce projet est activement développé avec Claude Code. La branche de travail Cla
 
 Le fichier [CLAUDE.md](./CLAUDE.md) contient tout le contexte nécessaire pour démarrer une session.
 
-Commande pour démarrer une session en ayant le contexte chargé :
 ```bash
 claude  # CLAUDE.md est lu automatiquement au démarrage
 ```

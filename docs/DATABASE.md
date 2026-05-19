@@ -182,20 +182,15 @@ CREATE TRIGGER on_auth_user_created
 Points clés :
 - `SECURITY DEFINER` + `SET search_path = public` : nécessaire pour écrire dans `public.profils` depuis un trigger sur `auth.users`
 - `ON CONFLICT DO NOTHING` : évite les doublons si le trigger est réexécuté
-- Rôle par défaut : `administrateur` (sera affiné en V3 avec des rôles distincts)
+- Rôle par défaut : `administrateur`
 
 ---
 
 ## Création manuelle d'un compte utilisateur
 
-Via SQL dans le dashboard Supabase (Table Editor → SQL Editor) :
+Via SQL dans le dashboard Supabase (SQL Editor) :
 
 ```sql
--- Si l'utilisateur n'existe pas encore :
-SELECT supabase_auth.create_user(
-  '{"email": "user@example.com", "password": "MotDePasse123!", "email_confirm": true}'::jsonb
-);
-
 -- Si le compte existe mais sans mot de passe (ex: magic link partiel) :
 UPDATE auth.users
 SET
@@ -210,11 +205,10 @@ WHERE email = 'user@example.com';
 
 Pour activer la connexion Google (bouton présent dans l'app mais désactivé) :
 
-1. Aller dans Supabase Dashboard → Authentication → Providers → Google
-2. Activer Google
-3. Créer un projet Google Cloud → OAuth 2.0 → copier Client ID et Client Secret
-4. Ajouter l'URL de callback Supabase dans Google Cloud Console
-5. Ajouter `https://xaviervernin-prog.github.io` dans les Redirect URLs de Supabase
+1. Supabase Dashboard → Authentication → Providers → Google → Activer
+2. Créer un projet Google Cloud → OAuth 2.0 → copier Client ID et Client Secret
+3. Ajouter l'URL de callback Supabase dans Google Cloud Console
+4. Ajouter `https://xaviervernin-prog.github.io` dans les Redirect URLs de Supabase
 
 ---
 

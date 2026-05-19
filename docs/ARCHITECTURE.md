@@ -131,7 +131,7 @@ onAuthStateChange('SIGNED_IN')  ──▶  showApp()
 ## Numérotation automatique des documents
 
 | Type | Format | Exemple |
-|------|--------|---------|
+|------|--------|--------|
 | Interventions | `INT-YYYY-NNN` | `INT-2025-007` |
 | Devis | `DEV-YYYY-NNN` | `DEV-2025-003` |
 | Factures | `FAC-YYYY-NNN` | `FAC-2025-012` |
