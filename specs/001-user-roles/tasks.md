@@ -20,8 +20,8 @@ description: "Task list template for feature implementation"
 
 **Objectif** : Ajouter les bases nécessaires avant toute logique de rôle.
 
-- [ ] T001 Appliquer les policies RLS sur la table `profils` dans le dashboard Supabase (SQL fourni dans data-model.md)
-- [ ] T002 Vérifier que la contrainte CHECK sur `profils.role` est en place (SQL dans data-model.md)
+- [x] T001 Appliquer les policies RLS sur la table `profils` — fait via Supabase MCP : `select_own_profile`, `admin_select_all`, `admin_update` + fonction `is_admin()` SECURITY DEFINER
+- [x] T002 Contrainte CHECK sur `profils.role` — inutile : le type est déjà un ENUM `role_utilisateur` (`administrateur`, `commercial`, `comptable`, `technicien`) ✅
 - [x] T003 [P] Ajouter la variable globale `let currentRole = null` à la ligne 424 de `app.html` (zone STATE)
 - [x] T004 [P] Ajouter `const ROLE_TABS = { administrateur: [...], technicien: [...], comptable: [...], commercial: [...] }` à la ligne 425 de `app.html` (zone STATE, contenu dans data-model.md)
 
@@ -82,7 +82,7 @@ description: "Task list template for feature implementation"
 
 - [x] T019 [P] Vérifier le compte de lignes de `app.html` après implémentation — 1 238 lignes ✅ (limite : 1 500)
 - [ ] T020 Créer 4 comptes de test dans Supabase Auth (un par rôle) et vérifier la matrice complète
-- [ ] T021 Vérifier que le compte `xavier.vernin@gmail.com` a bien le rôle `administrateur` dans la table `profils`
+- [x] T021 Vérifier que le compte `xavier.vernin@gmail.com` a bien le rôle `administrateur` dans la table `profils` — confirmé via Supabase MCP ✅
 - [ ] T022 [P] Tester le cas limite : utilisateur authentifié sans ligne dans `profils` → vérifier le message d'erreur et la redirection vers le login
 
 ---
