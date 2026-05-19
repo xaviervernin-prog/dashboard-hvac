@@ -421,7 +421,14 @@ const { createClient } = supabase;
 const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
 
 let currentUser = null;
-let S = { clients: [], articles: [], categories: [], devis: [], interventions: [], factures: [] };
+let currentRole = null;
+const ROLE_TABS = {
+  administrateur: ['dashboard','clients','articles','interventions','devis','factures','settings'],
+  technicien:     ['dashboard','interventions'],
+  comptable:      ['dashboard','devis','factures'],
+  commercial:     ['dashboard','clients','devis'],
+};
+let S = { clients: [], articles: [], categories: [], devis: [], interventions: [], factures: [], allProfils: [] };
 let editId = { client: null, article: null, devis: null, interv: null, facture: null };
 let dLignes = [], fLignes = [];
 let calDate = new Date(); calDate.setDate(1);
@@ -430,11 +437,11 @@ let calViewMode = 'list';
 // ===== INIT =====
 async function init() {
   const { data: { session } } = await sb.auth.getSession();
-  if (session) { currentUser = session.user; await showApp(); }
+  if (session) { currentUser = session.user; await loadProfil(); if (currentRole) await showApp(); }
   else { showLogin(); }
   sb.auth.onAuthStateChange(async (event, session) => {
-    if (event === 'SIGNED_IN' && session) { currentUser = session.user; await showApp(); }
-    else if (event === 'SIGNED_OUT') { currentUser = null; showLogin(); }
+    if (event === 'SIGNED_IN' && session) { currentUser = session.user; await loadProfil(); if (currentRole) await showApp(); }
+    else if (event === 'SIGNED_OUT') { currentUser = null; currentRole = null; showLogin(); }
   });
 }
 
@@ -495,6 +502,11 @@ async function doLogout() {
 async function showApp() {
   const userEmail = currentUser ? currentUser.email : '';
   const userInitial = userEmail ? userEmail[0].toUpperCase() : '?';
+  const roleLabels = { administrateur:'Admin', technicien:'Technicien', comptable:'Comptable', commercial:'Commercial' };
+  const canSee = tab => ROLE_TABS[currentRole]?.includes(tab);
+  const nb = (tab, ic, lbl, active=false) => canSee(tab)
+    ? `<button class="nav-item${active?' active':''}" data-tab="${tab}" onclick="goTab('${tab}')"><span class="ic">${ic}</span>${lbl}</button>`
+    : '';
   document.getElementById('root').innerHTML = `
     <div class="layout">
       <nav class="sidebar">
@@ -509,18 +521,20 @@ async function showApp() {
         </div>
         <div class="sidebar-nav">
           <div class="sidebar-lbl">Menu</div>
-          <button class="nav-item active" onclick="goTab('dashboard')"><span class="ic">▦</span>Dashboard</button>
-          <button class="nav-item" onclick="goTab('clients')"><span class="ic">◎</span>Clients</button>
-          <button class="nav-item" onclick="goTab('articles')"><span class="ic">⊞</span>Articles</button>
-          <button class="nav-item" onclick="goTab('interventions')"><span class="ic">⚙</span>Interventions</button>
-          <button class="nav-item" onclick="goTab('devis')"><span class="ic">☰</span>Devis</button>
-          <button class="nav-item" onclick="goTab('factures')"><span class="ic">◈</span>Factures</button>
+          ${nb('dashboard','▦','Dashboard',true)}
+          ${nb('clients','◎','Clients')}
+          ${nb('articles','⊞','Articles')}
+          ${nb('interventions','⚙','Interventions')}
+          ${nb('devis','☰','Devis')}
+          ${nb('factures','◈','Factures')}
+          ${canSee('settings') ? '<div class="sidebar-lbl" style="margin-top:8px">Admin</div>' + nb('settings','⚙','Paramètres') : ''}
         </div>
         <div class="sidebar-footer">
           <div class="sidebar-user">
             <div class="sidebar-avatar">${userInitial}</div>
             <div>
               <div class="sidebar-uname">${userEmail}</div>
+              <div style="font-size:10px;color:#555;padding:1px 0">${roleLabels[currentRole]||''}</div>
               <button class="sidebar-logout" onclick="doLogout()">Déconnexion</button>
             </div>
           </div>
@@ -533,15 +547,16 @@ async function showApp() {
         <div id="tab-interventions" class="tab-panel"></div>
         <div id="tab-devis" class="tab-panel"></div>
         <div id="tab-factures" class="tab-panel"></div>
+        <div id="tab-settings" class="tab-panel"></div>
       </main>
     </div>
     <nav class="bottom-nav">
-      <button onclick="goTab('dashboard')" class="active"><span class="ic">▦</span>Board</button>
-      <button onclick="goTab('clients')"><span class="ic">◎</span>Clients</button>
-      <button onclick="goTab('articles')"><span class="ic">⊞</span>Articles</button>
-      <button onclick="goTab('interventions')"><span class="ic">⚙</span>Terrain</button>
-      <button onclick="goTab('devis')"><span class="ic">☰</span>Devis</button>
-      <button onclick="goTab('factures')"><span class="ic">◈</span>Factures</button>
+      ${canSee('dashboard') ? '<button data-tab="dashboard" onclick="goTab(\'dashboard\')" class="active"><span class="ic">▦</span>Board</button>' : ''}
+      ${canSee('clients') ? '<button data-tab="clients" onclick="goTab(\'clients\')"><span class="ic">◎</span>Clients</button>' : ''}
+      ${canSee('articles') ? '<button data-tab="articles" onclick="goTab(\'articles\')"><span class="ic">⊞</span>Articles</button>' : ''}
+      ${canSee('interventions') ? '<button data-tab="interventions" onclick="goTab(\'interventions\')"><span class="ic">⚙</span>Terrain</button>' : ''}
+      ${canSee('devis') ? '<button data-tab="devis" onclick="goTab(\'devis\')"><span class="ic">☰</span>Devis</button>' : ''}
+      ${canSee('factures') ? '<button data-tab="factures" onclick="goTab(\'factures\')"><span class="ic">◈</span>Factures</button>' : ''}
     </nav>`;
   document.querySelectorAll('.overlay').forEach(el => {
     el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
@@ -578,19 +593,34 @@ async function loadFactures() {
   const { data } = await sb.from('factures').select('*, clients(nom,prenom)').order('created_at', { ascending: false });
   S.factures = data || [];
 }
+async function loadProfil() {
+  const { data, error } = await sb.from('profils').select('role, email').eq('id', currentUser.id).single();
+  if (error || !data) {
+    document.getElementById('root').innerHTML = `<div style="padding:60px;text-align:center"><p style="color:#888;margin-bottom:16px">Profil introuvable. Contactez l'administrateur.</p><button onclick="doLogout()" style="background:#333;color:#fff;border:none;padding:8px 16px;border-radius:6px;cursor:pointer;font-family:inherit">Se déconnecter</button></div>`;
+    return;
+  }
+  currentRole = data.role;
+}
+async function loadAllProfils() {
+  if (currentRole !== 'administrateur') return;
+  const { data } = await sb.from('profils').select('id, role, email');
+  S.allProfils = data || [];
+}
 
 // ===== NAV =====
-const TABS = ['dashboard','clients','articles','interventions','devis','factures'];
+const TABS = ['dashboard','clients','articles','interventions','devis','factures','settings'];
 function goTab(name) {
-  TABS.forEach(t => document.getElementById('tab-'+t).classList.toggle('active', t===name));
-  document.querySelectorAll('.sidebar .nav-item').forEach((b,i) => b.classList.toggle('active', TABS[i]===name));
-  document.querySelectorAll('.bottom-nav button').forEach((b,i) => b.classList.toggle('active', TABS[i]===name));
+  if (currentRole && !ROLE_TABS[currentRole].includes(name)) return;
+  TABS.forEach(t => { const el = document.getElementById('tab-'+t); if (el) el.classList.toggle('active', t===name); });
+  document.querySelectorAll('.sidebar .nav-item[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab===name));
+  document.querySelectorAll('.bottom-nav button[data-tab]').forEach(b => b.classList.toggle('active', b.dataset.tab===name));
   if (name==='dashboard') renderDashboard();
   if (name==='clients') renderClients();
   if (name==='articles') renderArticles();
   if (name==='interventions') renderInterventions();
   if (name==='devis') renderDevis();
   if (name==='factures') renderFactures();
+  if (name==='settings') renderSettings();
 }
 
 // ===== HELPERS =====
@@ -1124,6 +1154,52 @@ async function deleteFacture() {
   const { error } = await sb.from('factures').delete().eq('id', editId.facture);
   if (error) { toast('Erreur',true); return; }
   closeOv('facture'); await loadFactures(); renderFactures(); toast('Facture supprimée');
+}
+
+// ===== SETTINGS =====
+async function renderSettings() {
+  const el = document.getElementById('tab-settings');
+  if (!el) return;
+  if (currentRole !== 'administrateur') { el.innerHTML = '<div style="padding:40px;color:#888">Accès refusé.</div>'; return; }
+  await loadAllProfils();
+  const roles = ['administrateur','technicien','comptable','commercial'];
+  const rows = S.allProfils.map(p => {
+    const isSelf = p.id === currentUser.id;
+    const opts = roles.map(r => `<option value="${r}"${p.role===r?' selected':''}>${r.charAt(0).toUpperCase()+r.slice(1)}</option>`).join('');
+    return `<tr style="border-bottom:1px solid #222">
+      <td style="padding:10px 12px;font-size:13px;color:#ccc">${p.email || p.id.substring(0,12)+'…'}</td>
+      <td style="padding:10px 12px">
+        <select data-uid="${p.id}" onchange="saveUserRole('${p.id}',this.value)"
+          style="background:#2c2c2c;color:#e8e8e8;border:1px solid #3a3a3a;border-radius:5px;padding:4px 8px;font-size:12px;font-family:inherit"
+          ${isSelf ? 'disabled title="Votre propre compte"' : ''}>
+          ${opts}
+        </select>
+      </td>
+    </tr>`;
+  }).join('');
+  el.innerHTML = `
+    <div class="pg-header"><div class="pg-title">Paramètres — Utilisateurs</div></div>
+    <div class="card" style="overflow:auto">
+      <table style="width:100%;border-collapse:collapse">
+        <thead><tr style="border-bottom:1px solid #2c2c2c">
+          <th style="padding:10px 12px;text-align:left;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.6px">Utilisateur</th>
+          <th style="padding:10px 12px;text-align:left;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.6px">Rôle</th>
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>`;
+}
+async function saveUserRole(userId, newRole) {
+  if (currentRole !== 'administrateur') { toast('Accès refusé', true); return; }
+  if (userId === currentUser.id) {
+    const adminCount = S.allProfils.filter(p => p.role === 'administrateur').length;
+    if (adminCount <= 1) { toast('Impossible : vous êtes le seul administrateur', true); await renderSettings(); return; }
+  }
+  const { error } = await sb.from('profils').update({ role: newRole }).eq('id', userId);
+  if (error) { toast('Erreur lors de la mise à jour', true); return; }
+  const p = S.allProfils.find(p => p.id === userId);
+  if (p) p.role = newRole;
+  toast('Rôle mis à jour');
 }
 
 // ===== LIGNES =====
