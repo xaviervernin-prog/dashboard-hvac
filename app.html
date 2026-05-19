@@ -217,7 +217,7 @@ tbody td{padding:11px 14px;color:var(--text);vertical-align:middle;font-size:13p
   .main{padding:16px;padding-bottom:76px;}
   .bottom-nav{display:flex;position:fixed;bottom:0;left:0;right:0;background:var(--sidebar);border-top:1px solid #2C2C2C;z-index:100;height:62px;}
   .bottom-nav button{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;background:none;border:none;color:#666;font-size:9px;font-weight:500;font-family:inherit;cursor:pointer;padding:6px 2px;border-top:2px solid transparent;}
-  .bottom-nav button .ic{font-size:17px;}
+  .bottom-nav button .ic{font-size:17px;display:flex;align-items:center;justify-content:center;}
   .bottom-nav button.active{color:#fff;border-top-color:var(--blue);}
   .stats-row{grid-template-columns:1fr 1fr;gap:8px;}
   .stat-card .val{font-size:22px;}
@@ -227,6 +227,21 @@ tbody td{padding:11px 14px;color:var(--text);vertical-align:middle;font-size:13p
   .dn{font-size:11px;width:20px;height:20px;}
   .cal-pill{font-size:9px;}
 }
+/* COMBOBOX CLIENT */
+.cs-wrap{position:relative;}
+.cs-dropdown{display:none;position:absolute;top:calc(100% + 2px);left:0;right:0;background:var(--surface);border:1px solid var(--border-strong);border-radius:8px;max-height:220px;overflow-y:auto;z-index:600;box-shadow:var(--shadow-md);}
+.cs-dropdown.open{display:block;}
+.cs-item{padding:8px 12px;font-size:13px;cursor:pointer;transition:background .08s;}
+.cs-item:hover{background:var(--bg);}
+.cs-selected{background:var(--blue-l)!important;color:var(--blue);}
+.cs-empty{color:var(--muted);cursor:default;font-style:italic;}
+.cs-empty:hover{background:transparent!important;}
+/* Icônes nav SVG */
+.nav-item .ic{font-size:15px;width:20px;text-align:center;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;}
+/* Lignes cliquables */
+tbody tr.clickable{cursor:pointer;}
+/* Bouton save loading */
+.btn-save:disabled{opacity:.75;cursor:wait;}
 </style>
 </head>
 <body>
@@ -318,7 +333,13 @@ tbody td{padding:11px 14px;color:var(--text);vertical-align:middle;font-size:13p
   <div class="drag"></div>
   <h3 id="m-interv-title">Nouvelle intervention</h3>
   <div class="g2">
-    <div class="form-row"><label>Client *</label><select id="i-client"></select></div>
+    <div class="form-row"><label>Client *</label>
+      <div class="cs-wrap">
+        <input type="text" class="cs-input" id="cs-i-client-text" placeholder="Rechercher un client…" autocomplete="off">
+        <div class="cs-dropdown" id="cs-i-client-list"></div>
+      </div>
+      <input type="hidden" id="i-client">
+    </div>
     <div class="form-row"><label>Type *</label>
       <select id="i-type">
         <option value="depannage">Dépannage</option>
@@ -353,7 +374,13 @@ tbody td{padding:11px 14px;color:var(--text);vertical-align:middle;font-size:13p
   <div class="drag"></div>
   <h3 id="m-devis-title">Nouveau devis</h3>
   <div class="g2">
-    <div class="form-row"><label>Client *</label><select id="d-client"></select></div>
+    <div class="form-row"><label>Client *</label>
+      <div class="cs-wrap">
+        <input type="text" class="cs-input" id="cs-d-client-text" placeholder="Rechercher un client…" autocomplete="off">
+        <div class="cs-dropdown" id="cs-d-client-list"></div>
+      </div>
+      <input type="hidden" id="d-client">
+    </div>
     <div class="form-row"><label>Date de validité</label><input id="d-validite" type="date"></div>
   </div>
   <div class="form-row"><label>Objet</label><input id="d-objet" placeholder="Objet du devis…"></div>
@@ -385,7 +412,13 @@ tbody td{padding:11px 14px;color:var(--text);vertical-align:middle;font-size:13p
   <div class="drag"></div>
   <h3 id="m-facture-title">Nouvelle facture</h3>
   <div class="g2">
-    <div class="form-row"><label>Client *</label><select id="f-client"></select></div>
+    <div class="form-row"><label>Client *</label>
+      <div class="cs-wrap">
+        <input type="text" class="cs-input" id="cs-f-client-text" placeholder="Rechercher un client…" autocomplete="off">
+        <div class="cs-dropdown" id="cs-f-client-list"></div>
+      </div>
+      <input type="hidden" id="f-client">
+    </div>
     <div class="form-row"><label>Date d'échéance</label><input id="f-echeance" type="date"></div>
   </div>
   <div class="form-row"><label>Objet</label><input id="f-objet" placeholder="Objet de la facture…"></div>
@@ -413,6 +446,17 @@ tbody td{padding:11px 14px;color:var(--text);vertical-align:middle;font-size:13p
   </div>
 </div></div>
 
+<!-- MODAL CONFIRMATION -->
+<div class="overlay" id="ov-confirm"><div class="modal" style="max-width:360px">
+  <div class="drag"></div>
+  <h3 id="confirm-title" style="font-size:15px;font-weight:700;margin-bottom:10px">Confirmation</h3>
+  <p id="confirm-msg" style="font-size:14px;color:var(--muted);line-height:1.5"></p>
+  <div class="mact">
+    <button class="btn-cancel" onclick="hideConfirm()">Annuler</button>
+    <button id="confirm-ok" class="btn-del" onclick="doConfirm()">Supprimer</button>
+  </div>
+</div></div>
+
 <script>
 // ===== CONFIG =====
 const SUPABASE_URL = 'https://hdbyydietidgzoudlias.supabase.co';
@@ -433,6 +477,16 @@ let editId = { client: null, article: null, devis: null, interv: null, facture: 
 let dLignes = [], fLignes = [];
 let calDate = new Date(); calDate.setDate(1);
 let calViewMode = 'list';
+
+const IC = {
+  dashboard:     `<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`,
+  clients:       `<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>`,
+  articles:      `<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><polyline points="3.27 6.96 12 12.01 20.73 6.96"/><line x1="12" y1="22.08" x2="12" y2="12"/></svg>`,
+  interventions: `<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`,
+  devis:         `<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>`,
+  factures:      `<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1-2-1z"/><line x1="8" y1="8" x2="16" y2="8"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="8" y1="16" x2="12" y2="16"/></svg>`,
+  settings:      `<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>`,
+};
 
 // ===== INIT =====
 async function init() {
@@ -504,8 +558,11 @@ async function showApp() {
   const userInitial = userEmail ? userEmail[0].toUpperCase() : '?';
   const roleLabels = { administrateur:'Admin', technicien:'Technicien', comptable:'Comptable', commercial:'Commercial' };
   const canSee = tab => ROLE_TABS[currentRole]?.includes(tab);
-  const nb = (tab, ic, lbl, active=false) => canSee(tab)
-    ? `<button class="nav-item${active?' active':''}" data-tab="${tab}" onclick="goTab('${tab}')"><span class="ic">${ic}</span>${lbl}</button>`
+  const nb = (tab, lbl, active=false) => canSee(tab)
+    ? `<button class="nav-item${active?' active':''}" data-tab="${tab}" onclick="goTab('${tab}')"><span class="ic">${IC[tab]||''}</span>${lbl}</button>`
+    : '';
+  const bnb = (tab, lbl, active=false) => canSee(tab)
+    ? `<button${active?' class="active"':''} data-tab="${tab}" onclick="goTab('${tab}')"><span class="ic">${IC[tab]||''}</span>${lbl}</button>`
     : '';
   document.getElementById('root').innerHTML = `
     <div class="layout">
@@ -521,13 +578,13 @@ async function showApp() {
         </div>
         <div class="sidebar-nav">
           <div class="sidebar-lbl">Menu</div>
-          ${nb('dashboard','▦','Dashboard',true)}
-          ${nb('clients','◎','Clients')}
-          ${nb('articles','⊞','Articles')}
-          ${nb('interventions','⚙','Interventions')}
-          ${nb('devis','☰','Devis')}
-          ${nb('factures','◈','Factures')}
-          ${canSee('settings') ? '<div class="sidebar-lbl" style="margin-top:8px">Admin</div>' + nb('settings','⚙','Paramètres') : ''}
+          ${nb('dashboard','Dashboard',true)}
+          ${nb('clients','Clients')}
+          ${nb('articles','Articles')}
+          ${nb('interventions','Interventions')}
+          ${nb('devis','Devis')}
+          ${nb('factures','Factures')}
+          ${canSee('settings') ? '<div class="sidebar-lbl" style="margin-top:8px">Admin</div>' + nb('settings','Paramètres') : ''}
         </div>
         <div class="sidebar-footer">
           <div class="sidebar-user">
@@ -551,12 +608,12 @@ async function showApp() {
       </main>
     </div>
     <nav class="bottom-nav">
-      ${canSee('dashboard') ? '<button data-tab="dashboard" onclick="goTab(\'dashboard\')" class="active"><span class="ic">▦</span>Board</button>' : ''}
-      ${canSee('clients') ? '<button data-tab="clients" onclick="goTab(\'clients\')"><span class="ic">◎</span>Clients</button>' : ''}
-      ${canSee('articles') ? '<button data-tab="articles" onclick="goTab(\'articles\')"><span class="ic">⊞</span>Articles</button>' : ''}
-      ${canSee('interventions') ? '<button data-tab="interventions" onclick="goTab(\'interventions\')"><span class="ic">⚙</span>Terrain</button>' : ''}
-      ${canSee('devis') ? '<button data-tab="devis" onclick="goTab(\'devis\')"><span class="ic">☰</span>Devis</button>' : ''}
-      ${canSee('factures') ? '<button data-tab="factures" onclick="goTab(\'factures\')"><span class="ic">◈</span>Factures</button>' : ''}
+      ${bnb('dashboard','Board',true)}
+      ${bnb('clients','Clients')}
+      ${bnb('articles','Articles')}
+      ${bnb('interventions','Terrain')}
+      ${bnb('devis','Devis')}
+      ${bnb('factures','Factures')}
     </nav>`;
   document.querySelectorAll('.overlay').forEach(el => {
     el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
@@ -631,6 +688,60 @@ function sv(id, v) { const el = document.getElementById(id); if (el) el.value = 
 function fmt(n) { return Number(n||0).toLocaleString('fr-FR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function clientName(c) { if (!c) return '—'; return (c.nom||'')+(c.prenom?' '+c.prenom:''); }
 function fmtDate(s) { if (!s) return '—'; const d = s.split('T')[0].split('-'); return `${d[2]}/${d[1]}/${d[0]}`; }
+
+// ===== CONFIRM DIALOG =====
+let _confirmCb = null;
+function showConfirm(msg, cb) {
+  document.getElementById('confirm-msg').textContent = msg;
+  _confirmCb = cb;
+  openOv('confirm');
+}
+function hideConfirm() { closeOv('confirm'); _confirmCb = null; }
+function doConfirm() { const cb = _confirmCb; hideConfirm(); if (cb) cb(); }
+
+// ===== BOUTON LOADING =====
+function setBtnLoading(btn, on) {
+  if (!btn) return;
+  if (on) {
+    btn.disabled = true;
+    btn._origHtml = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner" style="width:13px;height:13px;border-width:2px;margin-right:6px;display:inline-block;vertical-align:middle"></span>Enregistrement…';
+  } else {
+    btn.disabled = false;
+    if (btn._origHtml !== undefined) btn.innerHTML = btn._origHtml;
+  }
+}
+
+// ===== COMBOBOX CLIENT =====
+function fillClientCombo(hiddenId, currentId) {
+  const textEl = document.getElementById('cs-' + hiddenId + '-text');
+  const listEl = document.getElementById('cs-' + hiddenId + '-list');
+  const hiddenEl = document.getElementById(hiddenId);
+  if (!textEl || !listEl || !hiddenEl) return;
+  hiddenEl.value = currentId || '';
+  const cur = S.clients.find(c => c.id === currentId);
+  textEl.value = cur ? (cur.nom + (cur.prenom ? ' ' + cur.prenom : '') + (cur.entreprise ? ' — ' + cur.entreprise : '')) : '';
+  listEl.classList.remove('open');
+  const render = q => {
+    const f = q ? S.clients.filter(c => `${c.nom} ${c.prenom||''} ${c.entreprise||''}`.toLowerCase().includes(q.toLowerCase())) : S.clients;
+    listEl.innerHTML = f.length
+      ? f.map(c => `<div class="cs-item${c.id===hiddenEl.value?' cs-selected':''}" data-id="${c.id}">${c.nom}${c.prenom?' '+c.prenom:''}${c.entreprise?'<span style="color:var(--muted);font-size:12px"> — '+c.entreprise+'</span>':''}</div>`).join('')
+      : '<div class="cs-item cs-empty">Aucun résultat</div>';
+  };
+  textEl.oninput = () => { render(textEl.value); listEl.classList.add('open'); };
+  textEl.onfocus = () => { render(textEl.value); listEl.classList.add('open'); };
+  textEl.onblur = () => setTimeout(() => listEl.classList.remove('open'), 150);
+  listEl.onmousedown = e => {
+    e.preventDefault();
+    const item = e.target.closest('[data-id]');
+    if (!item) return;
+    hiddenEl.value = item.dataset.id;
+    const c = S.clients.find(x => x.id === item.dataset.id);
+    textEl.value = c ? (c.nom + (c.prenom ? ' ' + c.prenom : '') + (c.entreprise ? ' — ' + c.entreprise : '')) : '';
+    listEl.classList.remove('open');
+    render('');
+  };
+}
 
 let toastTimer;
 function toast(msg, err=false) {
@@ -733,14 +844,13 @@ function renderClients(q='', type='') {
         </select>
       </div>
       <div class="tscroll"><table>
-        <thead><tr><th>Nom</th><th>Type</th><th>Téléphone</th><th>Email</th><th>Émirat</th><th></th></tr></thead>
-        <tbody>${list.length ? list.map(c=>`<tr>
+        <thead><tr><th>Nom</th><th>Type</th><th>Téléphone</th><th>Email</th><th>Émirat</th></tr></thead>
+        <tbody>${list.length ? list.map(c=>`<tr class="clickable" onclick="openEditClient('${c.id}')">
           <td><strong>${c.nom}${c.prenom?' '+c.prenom:''}</strong>${c.entreprise?`<br><span style="font-size:11px;color:var(--muted)">${c.entreprise}</span>`:''}</td>
           <td>${bTypeClient(c.type)}</td>
           <td>${c.telephone?`<a href="tel:${c.telephone}" class="contact-link" onclick="event.stopPropagation()">${c.telephone}</a>`:'—'}</td>
           <td>${c.email||'—'}</td><td>${c.emirat||'—'}</td>
-          <td><button class="act blue" onclick="openEditClient('${c.id}')">Modifier</button></td>
-        </tr>`).join('') : '<tr><td colspan="6" class="empty-state">Aucun client</td></tr>'}
+        </tr>`).join('') : '<tr><td colspan="5" class="empty-state">Aucun client</td></tr>'}
         </tbody>
       </table></div>
     </div>`;
@@ -770,19 +880,24 @@ async function saveClient() {
   const payload = { nom, prenom:gv('c-prenom')||null, email:gv('c-email')||null, telephone:gv('c-tel')||null,
     type:gv('c-type'), entreprise:gv('c-entreprise')||null, adresse:gv('c-adresse')||null,
     emirat:gv('c-emirat')||'Dubai', notes:gv('c-notes')||null };
+  const btn = document.querySelector('#ov-client .btn-save');
+  setBtnLoading(btn, true);
   const { error } = editId.client
     ? await sb.from('clients').update(payload).eq('id', editId.client)
     : await sb.from('clients').insert({...payload, created_by: currentUser.id});
+  setBtnLoading(btn, false);
   if (error) { toast('Erreur : '+error.message, true); return; }
   closeOv('client');
   await loadClients(); renderClients();
   toast(editId.client ? 'Client modifié ✓' : 'Client créé ✓');
 }
 async function deleteClient() {
-  if (!editId.client || !confirm('Supprimer ce client ?')) return;
-  const { error } = await sb.from('clients').update({actif:false}).eq('id', editId.client);
-  if (error) { toast('Erreur', true); return; }
-  closeOv('client'); await loadClients(); renderClients(); toast('Client supprimé');
+  if (!editId.client) return;
+  showConfirm('Supprimer ce client ? Cette action est irréversible.', async () => {
+    const { error } = await sb.from('clients').update({actif:false}).eq('id', editId.client);
+    if (error) { toast('Erreur', true); return; }
+    closeOv('client'); await loadClients(); renderClients(); toast('Client supprimé');
+  });
 }
 
 // ===== ARTICLES =====
@@ -805,15 +920,14 @@ function renderArticles(q='', catId='') {
         </select>
       </div>
       <div class="tscroll"><table>
-        <thead><tr><th>Réf.</th><th>Désignation</th><th>Catégorie</th><th>Prix HT</th><th>Stock</th><th></th></tr></thead>
-        <tbody>${list.length ? list.map(a=>`<tr>
+        <thead><tr><th>Réf.</th><th>Désignation</th><th>Catégorie</th><th>Prix HT</th><th>Stock</th></tr></thead>
+        <tbody>${list.length ? list.map(a=>`<tr class="clickable" onclick="openEditArticle('${a.id}')">
           <td><code style="font-size:11px;color:var(--blue);font-weight:600">${a.reference||'—'}</code></td>
           <td><strong>${a.designation}</strong></td>
           <td>${a.categories_article?a.categories_article.nom:'—'}</td>
           <td>${fmt(a.prix_vente_ht)} AED</td>
           <td>${bStock(a.stock_actuel, a.stock_minimum)}</td>
-          <td><button class="act blue" onclick="openEditArticle('${a.id}')">Modifier</button></td>
-        </tr>`).join('') : '<tr><td colspan="6" class="empty-state">Aucun article</td></tr>'}
+        </tr>`).join('') : '<tr><td colspan="5" class="empty-state">Aucun article</td></tr>'}
         </tbody>
       </table></div>
     </div>`;
@@ -844,18 +958,23 @@ async function saveArticle() {
   const payload = { designation, description:gv('a-desc')||null, categorie_id:gv('a-categorie')||null,
     prix_vente_ht:Number(gv('a-prix'))||0, stock_actuel:Number(gv('a-stock'))||0,
     stock_minimum:Number(gv('a-stock-min'))||0, unite:gv('a-unite')||'u' };
+  const btn = document.querySelector('#ov-article .btn-save');
+  setBtnLoading(btn, true);
   const { error } = editId.article
     ? await sb.from('articles').update(payload).eq('id', editId.article)
     : await sb.from('articles').insert({...payload, reference: await nextRef(), created_by: currentUser.id});
+  setBtnLoading(btn, false);
   if (error) { toast('Erreur : '+error.message, true); return; }
   closeOv('article'); await loadArticles(); renderArticles();
   toast(editId.article ? 'Article modifié ✓' : 'Article créé ✓');
 }
 async function deleteArticle() {
-  if (!editId.article || !confirm('Supprimer cet article ?')) return;
-  const { error } = await sb.from('articles').update({actif:false}).eq('id', editId.article);
-  if (error) { toast('Erreur', true); return; }
-  closeOv('article'); await loadArticles(); renderArticles(); toast('Article supprimé');
+  if (!editId.article) return;
+  showConfirm('Supprimer cet article ?', async () => {
+    const { error } = await sb.from('articles').update({actif:false}).eq('id', editId.article);
+    if (error) { toast('Erreur', true); return; }
+    closeOv('article'); await loadArticles(); renderArticles(); toast('Article supprimé');
+  });
 }
 
 // ===== INTERVENTIONS =====
@@ -890,13 +1009,12 @@ function renderIntervList(list, q, statut) {
         </select>
       </div>
       <div class="tscroll"><table>
-        <thead><tr><th>N°</th><th>Client</th><th>Type</th><th>Date</th><th>Statut</th><th></th></tr></thead>
-        <tbody>${list.length ? list.map(i=>`<tr>
+        <thead><tr><th>N°</th><th>Client</th><th>Type</th><th>Date</th><th>Statut</th></tr></thead>
+        <tbody>${list.length ? list.map(i=>`<tr class="clickable" onclick="openEditInterv('${i.id}')">
           <td><strong>${i.numero}</strong></td><td>${clientName(i.clients)}</td>
           <td>${bTypeInterv(i.type)}</td><td>${fmtDate(i.date_debut)}</td>
           <td>${bStatutInterv(i.statut)}</td>
-          <td><button class="act blue" onclick="openEditInterv('${i.id}')">Modifier</button></td>
-        </tr>`).join('') : '<tr><td colspan="6" class="empty-state">Aucune intervention</td></tr>'}
+        </tr>`).join('') : '<tr><td colspan="5" class="empty-state">Aucune intervention</td></tr>'}
         </tbody>
       </table></div>
     </div>`;
@@ -949,7 +1067,7 @@ function openNewInterv() {
   sv('i-type','depannage'); sv('i-statut','planifiee');
   const now = new Date(); now.setMinutes(0,0,0);
   sv('i-date', now.toISOString().slice(0,16));
-  fillClientSelect('i-client', null);
+  fillClientCombo('i-client', null);
   document.getElementById('i-del-btn').style.display = 'none';
   openOv('interv');
 }
@@ -958,7 +1076,7 @@ function openEditInterv(id) {
   const i = S.interventions.find(x => x.id===id); if (!i) return;
   editId.interv = id;
   document.getElementById('m-interv-title').textContent = "Modifier l'intervention";
-  fillClientSelect('i-client', i.client_id);
+  fillClientCombo('i-client', i.client_id);
   sv('i-type',i.type); sv('i-statut',i.statut);
   sv('i-date', i.date_debut ? i.date_debut.slice(0,16) : '');
   sv('i-desc',i.description); sv('i-notes',i.notes);
@@ -970,18 +1088,23 @@ async function saveInterv() {
   const date_debut = gv('i-date'); if (!date_debut) { toast('La date est requise',true); return; }
   const payload = { client_id, type:gv('i-type'), statut:gv('i-statut'),
     date_debut: new Date(date_debut).toISOString(), description:gv('i-desc')||null, notes:gv('i-notes')||null };
+  const btn = document.querySelector('#ov-interv .btn-save');
+  setBtnLoading(btn, true);
   const { error } = editId.interv
     ? await sb.from('interventions').update(payload).eq('id', editId.interv)
     : await sb.from('interventions').insert({...payload, numero: await nextNumero('INT'), created_by: currentUser.id});
+  setBtnLoading(btn, false);
   if (error) { toast('Erreur : '+error.message, true); return; }
   closeOv('interv'); await loadInterventions(); renderInterventions();
   toast(editId.interv ? 'Intervention modifiée ✓' : 'Intervention créée ✓');
 }
 async function deleteInterv() {
-  if (!editId.interv || !confirm('Supprimer cette intervention ?')) return;
-  const { error } = await sb.from('interventions').delete().eq('id', editId.interv);
-  if (error) { toast('Erreur', true); return; }
-  closeOv('interv'); await loadInterventions(); renderInterventions(); toast('Intervention supprimée');
+  if (!editId.interv) return;
+  showConfirm('Supprimer cette intervention ?', async () => {
+    const { error } = await sb.from('interventions').delete().eq('id', editId.interv);
+    if (error) { toast('Erreur', true); return; }
+    closeOv('interv'); await loadInterventions(); renderInterventions(); toast('Intervention supprimée');
+  });
 }
 
 // ===== DEVIS =====
@@ -1001,13 +1124,12 @@ function renderDevis(q='', statut='') {
         </select>
       </div>
       <div class="tscroll"><table>
-        <thead><tr><th>N°</th><th>Client</th><th>Objet</th><th>Total TTC</th><th>Statut</th><th></th></tr></thead>
-        <tbody>${list.length ? list.map(d=>`<tr>
+        <thead><tr><th>N°</th><th>Client</th><th>Objet</th><th>Total TTC</th><th>Statut</th></tr></thead>
+        <tbody>${list.length ? list.map(d=>`<tr class="clickable" onclick="openEditDevis('${d.id}')">
           <td><strong>${d.numero}</strong></td><td>${clientName(d.clients)}</td>
           <td>${d.objet||'—'}</td><td><strong>${fmt(d.total_ttc)} AED</strong></td>
           <td>${bStatutDevis(d.statut)}</td>
-          <td><button class="act blue" onclick="openEditDevis('${d.id}')">Modifier</button></td>
-        </tr>`).join('') : '<tr><td colspan="6" class="empty-state">Aucun devis</td></tr>'}
+        </tr>`).join('') : '<tr><td colspan="5" class="empty-state">Aucun devis</td></tr>'}
         </tbody>
       </table></div>
     </div>`;
@@ -1020,7 +1142,7 @@ function openNewDevis() {
   sv('d-statut','brouillon');
   const in30 = new Date(); in30.setDate(in30.getDate()+30);
   sv('d-validite', in30.toISOString().split('T')[0]);
-  fillClientSelect('d-client', null);
+  fillClientCombo('d-client', null);
   document.getElementById('d-del-btn').style.display = 'none';
   renderLignes('devis'); openOv('devis');
 }
@@ -1028,7 +1150,7 @@ async function openEditDevis(id) {
   const d = S.devis.find(x => x.id===id); if (!d) return;
   editId.devis = id;
   document.getElementById('m-devis-title').textContent = 'Modifier le devis';
-  fillClientSelect('d-client', d.client_id);
+  fillClientCombo('d-client', d.client_id);
   sv('d-objet',d.objet); sv('d-notes',d.notes); sv('d-statut',d.statut);
   sv('d-validite',d.date_validite||'');
   const { data: lignes } = await sb.from('devis_lignes').select('*').eq('devis_id',id).order('ordre');
@@ -1042,13 +1164,15 @@ async function saveDevis() {
   const payload = { client_id, objet:gv('d-objet')||null, statut:gv('d-statut'),
     date_validite:gv('d-validite')||null, notes:gv('d-notes')||null,
     sous_total_ht:t.ht, montant_tva:t.tva, total_ttc:t.ttc };
+  const btn = document.querySelector('#ov-devis .btn-save');
+  setBtnLoading(btn, true);
   let devisId = editId.devis;
   if (editId.devis) {
     const { error } = await sb.from('devis').update(payload).eq('id', editId.devis);
-    if (error) { toast('Erreur : '+error.message,true); return; }
+    if (error) { setBtnLoading(btn, false); toast('Erreur : '+error.message,true); return; }
   } else {
     const { data, error } = await sb.from('devis').insert({...payload, numero: await nextNumero('DEV'), created_by: currentUser.id}).select().single();
-    if (error) { toast('Erreur : '+error.message,true); return; }
+    if (error) { setBtnLoading(btn, false); toast('Erreur : '+error.message,true); return; }
     devisId = data.id;
   }
   await sb.from('devis_lignes').delete().eq('devis_id', devisId);
@@ -1059,15 +1183,18 @@ async function saveDevis() {
         prix_unitaire_ht:Number(l.prix), taux_tva:5, montant_ht:ht, montant_tva:ht*0.05, montant_ttc:ht*1.05, ordre:i};
     }));
   }
+  setBtnLoading(btn, false);
   closeOv('devis'); await loadDevis(); renderDevis();
   toast(editId.devis ? 'Devis modifié ✓' : 'Devis créé ✓');
 }
 async function deleteDevis() {
-  if (!editId.devis || !confirm('Supprimer ce devis ?')) return;
-  await sb.from('devis_lignes').delete().eq('devis_id', editId.devis);
-  const { error } = await sb.from('devis').delete().eq('id', editId.devis);
-  if (error) { toast('Erreur',true); return; }
-  closeOv('devis'); await loadDevis(); renderDevis(); toast('Devis supprimé');
+  if (!editId.devis) return;
+  showConfirm('Supprimer ce devis et toutes ses lignes ?', async () => {
+    await sb.from('devis_lignes').delete().eq('devis_id', editId.devis);
+    const { error } = await sb.from('devis').delete().eq('id', editId.devis);
+    if (error) { toast('Erreur',true); return; }
+    closeOv('devis'); await loadDevis(); renderDevis(); toast('Devis supprimé');
+  });
 }
 
 // ===== FACTURES =====
@@ -1087,13 +1214,12 @@ function renderFactures(q='', statut='') {
         </select>
       </div>
       <div class="tscroll"><table>
-        <thead><tr><th>N°</th><th>Client</th><th>Objet</th><th>Total TTC</th><th>Statut</th><th></th></tr></thead>
-        <tbody>${list.length ? list.map(f=>`<tr>
+        <thead><tr><th>N°</th><th>Client</th><th>Objet</th><th>Total TTC</th><th>Statut</th></tr></thead>
+        <tbody>${list.length ? list.map(f=>`<tr class="clickable" onclick="openEditFacture('${f.id}')">
           <td><strong>${f.numero}</strong></td><td>${clientName(f.clients)}</td>
           <td>${f.objet||'—'}</td><td><strong>${fmt(f.total_ttc)} AED</strong></td>
           <td>${bStatutFacture(f.statut)}</td>
-          <td><button class="act blue" onclick="openEditFacture('${f.id}')">Modifier</button></td>
-        </tr>`).join('') : '<tr><td colspan="6" class="empty-state">Aucune facture</td></tr>'}
+        </tr>`).join('') : '<tr><td colspan="5" class="empty-state">Aucune facture</td></tr>'}
         </tbody>
       </table></div>
     </div>`;
@@ -1106,7 +1232,7 @@ function openNewFacture() {
   sv('f-statut','brouillon');
   const in30 = new Date(); in30.setDate(in30.getDate()+30);
   sv('f-echeance', in30.toISOString().split('T')[0]);
-  fillClientSelect('f-client', null);
+  fillClientCombo('f-client', null);
   document.getElementById('f-del-btn').style.display = 'none';
   renderLignes('facture'); openOv('facture');
 }
@@ -1114,7 +1240,7 @@ async function openEditFacture(id) {
   const f = S.factures.find(x => x.id===id); if (!f) return;
   editId.facture = id;
   document.getElementById('m-facture-title').textContent = 'Modifier la facture';
-  fillClientSelect('f-client', f.client_id);
+  fillClientCombo('f-client', f.client_id);
   sv('f-objet',f.objet); sv('f-notes',f.notes); sv('f-statut',f.statut);
   sv('f-echeance',f.date_echeance||'');
   const { data: lignes } = await sb.from('facture_lignes').select('*').eq('facture_id',id).order('ordre');
@@ -1128,13 +1254,15 @@ async function saveFacture() {
   const payload = { client_id, objet:gv('f-objet')||null, statut:gv('f-statut'),
     date_echeance:gv('f-echeance')||null, notes:gv('f-notes')||null,
     sous_total_ht:t.ht, montant_tva:t.tva, total_ttc:t.ttc };
+  const btn = document.querySelector('#ov-facture .btn-save');
+  setBtnLoading(btn, true);
   let factureId = editId.facture;
   if (editId.facture) {
     const { error } = await sb.from('factures').update(payload).eq('id', editId.facture);
-    if (error) { toast('Erreur : '+error.message,true); return; }
+    if (error) { setBtnLoading(btn, false); toast('Erreur : '+error.message,true); return; }
   } else {
     const { data, error } = await sb.from('factures').insert({...payload, numero: await nextNumero('FAC'), created_by: currentUser.id}).select().single();
-    if (error) { toast('Erreur : '+error.message,true); return; }
+    if (error) { setBtnLoading(btn, false); toast('Erreur : '+error.message,true); return; }
     factureId = data.id;
   }
   await sb.from('facture_lignes').delete().eq('facture_id', factureId);
@@ -1145,15 +1273,18 @@ async function saveFacture() {
         prix_unitaire_ht:Number(l.prix), taux_tva:5, montant_ht:ht, montant_tva:ht*0.05, montant_ttc:ht*1.05, ordre:i};
     }));
   }
+  setBtnLoading(btn, false);
   closeOv('facture'); await loadFactures(); renderFactures();
   toast(editId.facture ? 'Facture modifiée ✓' : 'Facture créée ✓');
 }
 async function deleteFacture() {
-  if (!editId.facture || !confirm('Supprimer cette facture ?')) return;
-  await sb.from('facture_lignes').delete().eq('facture_id', editId.facture);
-  const { error } = await sb.from('factures').delete().eq('id', editId.facture);
-  if (error) { toast('Erreur',true); return; }
-  closeOv('facture'); await loadFactures(); renderFactures(); toast('Facture supprimée');
+  if (!editId.facture) return;
+  showConfirm('Supprimer cette facture et toutes ses lignes ?', async () => {
+    await sb.from('facture_lignes').delete().eq('facture_id', editId.facture);
+    const { error } = await sb.from('factures').delete().eq('id', editId.facture);
+    if (error) { toast('Erreur',true); return; }
+    closeOv('facture'); await loadFactures(); renderFactures(); toast('Facture supprimée');
+  });
 }
 
 // ===== SETTINGS =====
