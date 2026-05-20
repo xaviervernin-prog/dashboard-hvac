@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
 <style>
 :root{
   --bg:#F7F7F5;
@@ -242,6 +243,39 @@ tbody td{padding:11px 14px;color:var(--text);vertical-align:middle;font-size:13p
 tbody tr.clickable{cursor:pointer;}
 /* Bouton save loading */
 .btn-save:disabled{opacity:.75;cursor:wait;}
+/* SORT */
+thead th.sortable{cursor:pointer;user-select:none;}
+thead th.sortable:hover{color:var(--text);}
+thead th .si{font-size:9px;margin-left:3px;opacity:.35;display:inline;}
+thead th.sort-asc .si::after{content:'▲';opacity:1;}
+thead th.sort-desc .si::after{content:'▼';opacity:1;}
+thead th:not(.sort-asc):not(.sort-desc) .si::after{content:'⬍';}
+/* PAGINATION */
+.pg-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 14px;border-top:1px solid var(--border);background:var(--bg);font-size:12px;color:var(--muted);}
+.pg-btns{display:flex;gap:4px;}
+.pg-btn{background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:4px 10px;border-radius:5px;font-size:12px;font-family:inherit;cursor:pointer;transition:all .1s;}
+.pg-btn:hover:not(:disabled){background:var(--bg);color:var(--text);}
+.pg-btn:disabled{opacity:.35;cursor:default;}
+/* DETAIL VIEW */
+.detail-back{display:inline-flex;align-items:center;gap:5px;color:var(--muted);font-size:13px;font-weight:500;cursor:pointer;margin-bottom:16px;background:none;border:none;font-family:inherit;padding:0;transition:color .1s;}
+.detail-back:hover{color:var(--text);}
+.detail-hd{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:16px;flex-wrap:wrap;gap:10px;}
+.detail-num{font-size:20px;font-weight:800;}
+.dcard{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 18px;margin-bottom:10px;box-shadow:var(--shadow);}
+.dcard-t{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid var(--border);}
+.dgrid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.dfl{font-size:11px;color:var(--muted);font-weight:500;margin-bottom:2px;}
+.dfv{font-size:13px;color:var(--text);font-weight:500;}
+.dtable{width:100%;border-collapse:collapse;font-size:13px;}
+.dtable th{padding:7px 10px;text-align:left;font-size:11px;color:var(--muted);font-weight:600;border-bottom:1px solid var(--border);}
+.dtable td{padding:8px 10px;border-bottom:1px solid var(--border);}
+.dtable tr:last-child td{border-bottom:none;}
+.dtotal{text-align:right;padding-top:10px;margin-top:4px;border-top:1px solid var(--border);}
+.dtotal .ttc{font-size:18px;font-weight:800;color:var(--text);}
+/* CHART */
+.chart-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:14px 18px 16px;margin-bottom:10px;box-shadow:var(--shadow);}
+.chart-t{font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px;}
+@media(max-width:700px){.dgrid{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
@@ -477,6 +511,9 @@ let editId = { client: null, article: null, devis: null, interv: null, facture: 
 let dLignes = [], fLignes = [];
 let calDate = new Date(); calDate.setDate(1);
 let calViewMode = 'list';
+let sortState = {};
+let pageState = {clients:1, articles:1, interventions:1, devis:1, factures:1};
+const PAGE_SIZE = 25;
 
 const IC = {
   dashboard:     `<svg width="1em" height="1em" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>`,
@@ -689,6 +726,23 @@ function fmt(n) { return Number(n||0).toLocaleString('fr-FR',{minimumFractionDig
 function clientName(c) { if (!c) return '—'; return (c.nom||'')+(c.prenom?' '+c.prenom:''); }
 function fmtDate(s) { if (!s) return '—'; const d = s.split('T')[0].split('-'); return `${d[2]}/${d[1]}/${d[0]}`; }
 
+// ===== SORT =====
+const SORT_EXT = {
+  clients: {nom:c=>(c.nom||'').toLowerCase(), type:c=>c.type||'', telephone:c=>c.telephone||'', email:c=>c.email||'', emirat:c=>c.emirat||''},
+  articles: {reference:a=>a.reference||'', designation:a=>(a.designation||'').toLowerCase(), categorie:a=>(a.categories_article?.nom||'').toLowerCase(), prix_vente_ht:a=>Number(a.prix_vente_ht||0), stock_actuel:a=>Number(a.stock_actuel||0)},
+  interventions: {numero:i=>i.numero||'', client:i=>clientName(i.clients).toLowerCase(), type:i=>i.type||'', date_debut:i=>i.date_debut||'', statut:i=>i.statut||''},
+  devis: {numero:d=>d.numero||'', client:d=>clientName(d.clients).toLowerCase(), objet:d=>(d.objet||'').toLowerCase(), total_ttc:d=>Number(d.total_ttc||0), statut:d=>d.statut||''},
+  factures: {numero:f=>f.numero||'', client:f=>clientName(f.clients).toLowerCase(), objet:f=>(f.objet||'').toLowerCase(), total_ttc:f=>Number(f.total_ttc||0), statut:f=>f.statut||''},
+};
+function getSort(mod){return sortState[mod]||{col:null,dir:'asc'};}
+function applySort(list,mod){const{col,dir}=getSort(mod);if(!col)return list;const ext=SORT_EXT[mod]?.[col];if(!ext)return list;return[...list].sort((a,b)=>{let av=ext(a),bv=ext(b);if(av<bv)return dir==='asc'?-1:1;if(av>bv)return dir==='asc'?1:-1;return 0;});}
+function clickSort(mod,col){const s=getSort(mod);sortState[mod]={col,dir:s.col===col&&s.dir==='asc'?'desc':'asc'};pageState[mod]=1;if(mod==='clients')renderClients();else if(mod==='articles')renderArticles();else if(mod==='interventions')renderInterventions();else if(mod==='devis')renderDevis();else if(mod==='factures')renderFactures();}
+function thS(mod,col,lbl){const s=getSort(mod);const cls=s.col===col?`sort-${s.dir}`:'';return `<th class="sortable ${cls}" onclick="clickSort('${mod}','${col}')">${lbl}<span class="si"></span></th>`;}
+// ===== PAGINATION =====
+function pgSlice(list,mod){const p=pageState[mod]||1;return list.slice((p-1)*PAGE_SIZE,p*PAGE_SIZE);}
+function pgBar(mod,total){const p=pageState[mod]||1;const pages=Math.ceil(total/PAGE_SIZE);if(pages<=1)return '';return `<div class="pg-bar"><span>${total} entrée${total>1?'s':''} — page ${p}/${pages}</span><div class="pg-btns"><button class="pg-btn" onclick="goPage('${mod}',${p-1})" ${p>1?'':'disabled'}>← Préc.</button><button class="pg-btn" onclick="goPage('${mod}',${p+1})" ${p<pages?'':'disabled'}>Suiv. →</button></div></div>`;}
+function goPage(mod,p){pageState[mod]=p;if(mod==='clients')renderClients();else if(mod==='articles')renderArticles();else if(mod==='interventions')renderInterventions();else if(mod==='devis')renderDevis();else if(mod==='factures')renderFactures();}
+
 // ===== CONFIRM DIALOG =====
 let _confirmCb = null;
 function showConfirm(msg, cb) {
@@ -781,49 +835,126 @@ function bStock(q,min){q=Number(q||0);min=Number(min||0);if(q<=0)return `<span c
 // ===== DASHBOARD =====
 function renderDashboard() {
   const panel = document.getElementById('tab-dashboard');
-  const todayStr = new Date().toISOString().split('T')[0];
+  const now = new Date();
+  const todayStr = now.toISOString().split('T')[0];
+  const curYear = now.getFullYear(), curMonth = now.getMonth();
+  const prevMonth = curMonth === 0 ? 11 : curMonth - 1;
+  const prevYear = curMonth === 0 ? curYear - 1 : curYear;
+
   const intervAujourd = S.interventions.filter(i => i.date_debut && i.date_debut.startsWith(todayStr));
-  const devisEnCours = S.devis.filter(d => d.statut==='brouillon'||d.statut==='envoye');
-  const facturesRetard = S.factures.filter(f => f.statut==='en_retard');
-  const caEncaisse = S.factures.filter(f=>f.statut==='payee').reduce((s,f)=>s+Number(f.total_ttc||0),0);
+  const facturesRetard = S.factures.filter(f => f.statut === 'en_retard');
+  const devisEnCours = S.devis.filter(d => d.statut === 'brouillon' || d.statut === 'envoye');
+
+  const caMois = (y, m) => S.factures
+    .filter(f => f.statut === 'payee' && f.created_at)
+    .filter(f => { const d = new Date(f.created_at); return d.getFullYear() === y && d.getMonth() === m; })
+    .reduce((s, f) => s + Number(f.total_ttc || 0), 0);
+
+  const caCurrentMonth = caMois(curYear, curMonth);
+  const caPrevMonth = caMois(prevYear, prevMonth);
+  const caTrend = caPrevMonth > 0 ? Math.round((caCurrentMonth - caPrevMonth) / caPrevMonth * 100) : null;
+
+  const intervMois = (y, m) => S.interventions.filter(i => {
+    if (!i.date_debut) return false;
+    const d = new Date(i.date_debut);
+    return d.getFullYear() === y && d.getMonth() === m;
+  }).length;
+  const intervCurMonth = intervMois(curYear, curMonth);
+  const intervPrevMonth = intervMois(prevYear, prevMonth);
+  const intervTrend = intervPrevMonth > 0 ? Math.round((intervCurMonth - intervPrevMonth) / intervPrevMonth * 100) : null;
+
+  function trendHtml(trend) {
+    if (trend === null) return '<div class="sub">— vs mois précédent</div>';
+    const up = trend >= 0;
+    return `<div class="sub" style="color:${up ? 'var(--green)' : 'var(--red)'}">${up ? '↑' : '↓'} ${Math.abs(trend)}% vs mois préc.</div>`;
+  }
+
+  const last12 = [];
+  for (let i = 11; i >= 0; i--) {
+    const d = new Date(curYear, curMonth - i, 1);
+    last12.push({ label: d.toLocaleDateString('fr-FR', { month: 'short', year: '2-digit' }), ca: caMois(d.getFullYear(), d.getMonth()) });
+  }
+
   panel.innerHTML = `
     <div class="page-title">Tableau de bord</div>
     <div class="stats-row">
-      <div class="stat-card" onclick="goTab('clients')"><div class="lbl">Clients actifs</div><div class="val">${S.clients.length}</div><div class="sub">au total</div></div>
-      <div class="stat-card" onclick="goTab('devis')"><div class="lbl">Devis en cours</div><div class="val">${devisEnCours.length}</div><div class="sub">en attente</div></div>
-      <div class="stat-card" onclick="goTab('interventions')"><div class="lbl">Aujourd'hui</div><div class="val">${intervAujourd.length}</div><div class="sub">intervention(s)</div></div>
-      <div class="stat-card" onclick="goTab('factures')"><div class="lbl">Factures retard</div><div class="val" style="color:${facturesRetard.length>0?'var(--red)':'var(--green)'}">${facturesRetard.length}</div><div class="sub" style="color:${facturesRetard.length>0?'var(--red)':'var(--green)'}">à relancer</div></div>
+      <div class="stat-card" onclick="goTab('factures')">
+        <div class="lbl">CA ce mois (AED)</div>
+        <div class="val" style="font-size:20px">${fmt(caCurrentMonth)}</div>
+        ${trendHtml(caTrend)}
+      </div>
+      <div class="stat-card" onclick="goTab('interventions')">
+        <div class="lbl">Interventions (mois)</div>
+        <div class="val">${intervCurMonth}</div>
+        ${trendHtml(intervTrend)}
+      </div>
+      <div class="stat-card" onclick="goTab('devis')">
+        <div class="lbl">Devis en cours</div>
+        <div class="val">${devisEnCours.length}</div>
+        <div class="sub">brouillon + envoyé</div>
+      </div>
+      <div class="stat-card" onclick="goTab('factures')">
+        <div class="lbl">Factures en retard</div>
+        <div class="val" style="color:${facturesRetard.length > 0 ? 'var(--red)' : 'var(--green)'}">${facturesRetard.length}</div>
+        <div class="sub" style="color:${facturesRetard.length > 0 ? 'var(--red)' : 'var(--green)'}">${facturesRetard.length > 0 ? 'à relancer' : 'tout est à jour'}</div>
+      </div>
     </div>
-    <div class="stats-row">
-      <div class="stat-card"><div class="lbl">CA encaissé</div><div class="val" style="font-size:18px">${fmt(caEncaisse)} AED</div><div class="sub">factures payées</div></div>
-      <div class="stat-card" onclick="goTab('interventions')"><div class="lbl">Interventions</div><div class="val">${S.interventions.length}</div><div class="sub">au total</div></div>
-      <div class="stat-card" onclick="goTab('articles')"><div class="lbl">Articles</div><div class="val">${S.articles.length}</div><div class="sub">en catalogue</div></div>
+    <div class="chart-card">
+      <div class="chart-t">CA encaissé — 12 derniers mois (AED)</div>
+      <div style="height:180px;position:relative"><canvas id="ca-chart"></canvas></div>
     </div>
-    ${intervAujourd.length>0?`
-    <div class="table-card" style="margin-bottom:12px">
-      <div class="table-header"><h3>Interventions du jour</h3></div>
+    ${intervAujourd.length > 0 ? `
+    <div class="table-card" style="margin-bottom:10px">
+      <div class="table-header"><h3>Interventions du jour (${intervAujourd.length})</h3></div>
       <div class="tscroll"><table>
         <thead><tr><th>N°</th><th>Client</th><th>Type</th><th>Statut</th><th></th></tr></thead>
-        <tbody>${intervAujourd.map(i=>`<tr>
+        <tbody>${intervAujourd.map(i => `<tr>
           <td><strong>${i.numero}</strong></td><td>${clientName(i.clients)}</td>
           <td>${bTypeInterv(i.type)}</td><td>${bStatutInterv(i.statut)}</td>
           <td><button class="act blue" onclick="openEditInterv('${i.id}')">Modifier</button></td>
         </tr>`).join('')}</tbody>
       </table></div>
-    </div>`:''}
-    ${facturesRetard.length>0?`
-    <div class="table-card">
-      <div class="table-header"><h3>Factures en retard</h3></div>
+    </div>` : ''}
+    ${facturesRetard.length > 0 ? `
+    <div class="table-card" style="margin-bottom:10px">
+      <div class="table-header"><h3>Factures en retard (${facturesRetard.length})</h3></div>
       <div class="tscroll"><table>
         <thead><tr><th>N°</th><th>Client</th><th>Montant TTC</th><th></th></tr></thead>
-        <tbody>${facturesRetard.map(f=>`<tr>
+        <tbody>${facturesRetard.map(f => `<tr>
           <td><strong>${f.numero}</strong></td><td>${clientName(f.clients)}</td>
           <td><strong>${fmt(f.total_ttc)} AED</strong></td>
           <td><button class="act blue" onclick="openEditFacture('${f.id}')">Voir</button></td>
         </tr>`).join('')}</tbody>
       </table></div>
-    </div>`:''}
+    </div>` : ''}
+    <div class="stats-row">
+      <div class="stat-card" onclick="goTab('clients')"><div class="lbl">Clients actifs</div><div class="val">${S.clients.length}</div><div class="sub">au total</div></div>
+      <div class="stat-card" onclick="goTab('interventions')"><div class="lbl">Interventions</div><div class="val">${S.interventions.length}</div><div class="sub">au total</div></div>
+      <div class="stat-card" onclick="goTab('articles')"><div class="lbl">Articles</div><div class="val">${S.articles.length}</div><div class="sub">en catalogue</div></div>
+    </div>
   `;
+  setTimeout(() => initCAChart(last12), 0);
+}
+
+function initCAChart(data) {
+  const canvas = document.getElementById('ca-chart');
+  if (!canvas || typeof Chart === 'undefined') return;
+  if (window._caChart) { window._caChart.destroy(); window._caChart = null; }
+  window._caChart = new Chart(canvas, {
+    type: 'bar',
+    data: {
+      labels: data.map(m => m.label),
+      datasets: [{ data: data.map(m => m.ca), backgroundColor: 'rgba(35,131,226,0.15)', borderColor: 'rgba(35,131,226,0.8)', borderWidth: 2, borderRadius: 4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => fmt(ctx.raw) + ' AED' } } },
+      scales: {
+        y: { beginAtZero: true, grid: { color: 'rgba(0,0,0,0.04)' }, ticks: { callback: v => fmt(v), font: { size: 10 } } },
+        x: { grid: { display: false }, ticks: { font: { size: 10 } } }
+      }
+    }
+  });
 }
 
 // ===== CLIENTS =====
@@ -831,12 +962,15 @@ function renderClients(q='', type='') {
   let list = S.clients;
   if (q) list = list.filter(c => `${c.nom} ${c.prenom||''} ${c.entreprise||''} ${c.email||''} ${c.telephone||''}`.toLowerCase().includes(q.toLowerCase()));
   if (type) list = list.filter(c => c.type===type);
+  list = applySort(list, 'clients');
+  const total = list.length;
+  const paged = pgSlice(list, 'clients');
   document.getElementById('tab-clients').innerHTML = `
     <div class="page-hd"><div class="page-title">Clients</div><button class="btn-p" onclick="openNewClient()">+ Nouveau client</button></div>
     <div class="table-card">
       <div class="filter-bar">
-        <input placeholder="Nom, email, téléphone…" oninput="renderClients(this.value,document.getElementById('cf-type').value)">
-        <select id="cf-type" onchange="renderClients(document.querySelector('#tab-clients .filter-bar input').value,this.value)">
+        <input placeholder="Nom, email, téléphone…" oninput="pageState.clients=1;renderClients(this.value,document.getElementById('cf-type').value)">
+        <select id="cf-type" onchange="pageState.clients=1;renderClients(document.querySelector('#tab-clients .filter-bar input').value,this.value)">
           <option value="">Tous types</option>
           <option value="particulier">Particulier</option>
           <option value="entreprise">Entreprise</option>
@@ -844,8 +978,8 @@ function renderClients(q='', type='') {
         </select>
       </div>
       <div class="tscroll"><table>
-        <thead><tr><th>Nom</th><th>Type</th><th>Téléphone</th><th>Email</th><th>Émirat</th></tr></thead>
-        <tbody>${list.length ? list.map(c=>`<tr class="clickable" onclick="openEditClient('${c.id}')">
+        <thead><tr>${thS('clients','nom','Nom')}${thS('clients','type','Type')}${thS('clients','telephone','Téléphone')}${thS('clients','email','Email')}${thS('clients','emirat','Émirat')}</tr></thead>
+        <tbody>${paged.length ? paged.map(c=>`<tr class="clickable" onclick="openViewClient('${c.id}')">
           <td><strong>${c.nom}${c.prenom?' '+c.prenom:''}</strong>${c.entreprise?`<br><span style="font-size:11px;color:var(--muted)">${c.entreprise}</span>`:''}</td>
           <td>${bTypeClient(c.type)}</td>
           <td>${c.telephone?`<a href="tel:${c.telephone}" class="contact-link" onclick="event.stopPropagation()">${c.telephone}</a>`:'—'}</td>
@@ -853,6 +987,7 @@ function renderClients(q='', type='') {
         </tr>`).join('') : '<tr><td colspan="5" class="empty-state">Aucun client</td></tr>'}
         </tbody>
       </table></div>
+      ${pgBar('clients', total)}
     </div>`;
 }
 
@@ -909,19 +1044,22 @@ function renderArticles(q='', catId='') {
   let list = S.articles;
   if (q) list = list.filter(a => `${a.designation} ${a.reference||''}`.toLowerCase().includes(q.toLowerCase()));
   if (catId) list = list.filter(a => a.categorie_id===catId);
+  list = applySort(list, 'articles');
+  const total = list.length;
+  const paged = pgSlice(list, 'articles');
   document.getElementById('tab-articles').innerHTML = `
     <div class="page-hd"><div class="page-title">Articles &amp; Catalogue</div><button class="btn-p" onclick="openNewArticle()">+ Nouvel article</button></div>
     <div class="table-card">
       <div class="filter-bar">
-        <input placeholder="Désignation, référence…" oninput="renderArticles(this.value,document.getElementById('af-cat').value)">
-        <select id="af-cat" onchange="renderArticles(document.querySelector('#tab-articles .filter-bar input').value,this.value)">
+        <input placeholder="Désignation, référence…" oninput="pageState.articles=1;renderArticles(this.value,document.getElementById('af-cat').value)">
+        <select id="af-cat" onchange="pageState.articles=1;renderArticles(document.querySelector('#tab-articles .filter-bar input').value,this.value)">
           <option value="">Toutes catégories</option>
           ${S.categories.map(c=>`<option value="${c.id}">${c.nom}</option>`).join('')}
         </select>
       </div>
       <div class="tscroll"><table>
-        <thead><tr><th>Réf.</th><th>Désignation</th><th>Catégorie</th><th>Prix HT</th><th>Stock</th></tr></thead>
-        <tbody>${list.length ? list.map(a=>`<tr class="clickable" onclick="openEditArticle('${a.id}')">
+        <thead><tr>${thS('articles','reference','Réf.')}${thS('articles','designation','Désignation')}${thS('articles','categorie','Catégorie')}${thS('articles','prix_vente_ht','Prix HT')}${thS('articles','stock_actuel','Stock')}</tr></thead>
+        <tbody>${paged.length ? paged.map(a=>`<tr class="clickable" onclick="openEditArticle('${a.id}')">
           <td><code style="font-size:11px;color:var(--blue);font-weight:600">${a.reference||'—'}</code></td>
           <td><strong>${a.designation}</strong></td>
           <td>${a.categories_article?a.categories_article.nom:'—'}</td>
@@ -930,6 +1068,7 @@ function renderArticles(q='', catId='') {
         </tr>`).join('') : '<tr><td colspan="5" class="empty-state">Aucun article</td></tr>'}
         </tbody>
       </table></div>
+      ${pgBar('articles', total)}
     </div>`;
 }
 
@@ -996,11 +1135,14 @@ function renderInterventions(q='', statut='') {
 function toggleCalView() { calViewMode = calViewMode==='list' ? 'calendar' : 'list'; renderInterventions(); }
 
 function renderIntervList(list, q, statut) {
+  list = applySort(list, 'interventions');
+  const total = list.length;
+  const paged = pgSlice(list, 'interventions');
   return `
     <div class="table-card">
       <div class="filter-bar">
-        <input placeholder="Client, numéro…" value="${q}" oninput="renderInterventions(this.value,document.getElementById('if-s').value)">
-        <select id="if-s" onchange="renderInterventions(document.querySelector('#tab-interventions .filter-bar input').value,this.value)">
+        <input placeholder="Client, numéro…" value="${q}" oninput="pageState.interventions=1;renderInterventions(this.value,document.getElementById('if-s').value)">
+        <select id="if-s" onchange="pageState.interventions=1;renderInterventions(document.querySelector('#tab-interventions .filter-bar input').value,this.value)">
           <option value="" ${!statut?'selected':''}>Tous statuts</option>
           <option value="planifiee" ${statut==='planifiee'?'selected':''}>Planifiée</option>
           <option value="en_cours" ${statut==='en_cours'?'selected':''}>En cours</option>
@@ -1009,14 +1151,15 @@ function renderIntervList(list, q, statut) {
         </select>
       </div>
       <div class="tscroll"><table>
-        <thead><tr><th>N°</th><th>Client</th><th>Type</th><th>Date</th><th>Statut</th></tr></thead>
-        <tbody>${list.length ? list.map(i=>`<tr class="clickable" onclick="openEditInterv('${i.id}')">
+        <thead><tr>${thS('interventions','numero','N°')}${thS('interventions','client','Client')}${thS('interventions','type','Type')}${thS('interventions','date_debut','Date')}${thS('interventions','statut','Statut')}</tr></thead>
+        <tbody>${paged.length ? paged.map(i=>`<tr class="clickable" onclick="openViewInterv('${i.id}')">
           <td><strong>${i.numero}</strong></td><td>${clientName(i.clients)}</td>
           <td>${bTypeInterv(i.type)}</td><td>${fmtDate(i.date_debut)}</td>
           <td>${bStatutInterv(i.statut)}</td>
         </tr>`).join('') : '<tr><td colspan="5" class="empty-state">Aucune intervention</td></tr>'}
         </tbody>
       </table></div>
+      ${pgBar('interventions', total)}
     </div>`;
 }
 
@@ -1112,26 +1255,30 @@ function renderDevis(q='', statut='') {
   let list = S.devis;
   if (q) list = list.filter(d => `${clientName(d.clients)} ${d.numero} ${d.objet||''}`.toLowerCase().includes(q.toLowerCase()));
   if (statut) list = list.filter(d => d.statut===statut);
+  list = applySort(list, 'devis');
+  const total = list.length;
+  const paged = pgSlice(list, 'devis');
   document.getElementById('tab-devis').innerHTML = `
     <div class="page-hd"><div class="page-title">Devis</div><button class="btn-p" onclick="openNewDevis()">+ Nouveau devis</button></div>
     <div class="table-card">
       <div class="filter-bar">
-        <input placeholder="Client, numéro, objet…" oninput="renderDevis(this.value,document.getElementById('devf-s').value)">
-        <select id="devf-s" onchange="renderDevis(document.querySelector('#tab-devis .filter-bar input').value,this.value)">
+        <input placeholder="Client, numéro, objet…" oninput="pageState.devis=1;renderDevis(this.value,document.getElementById('devf-s').value)">
+        <select id="devf-s" onchange="pageState.devis=1;renderDevis(document.querySelector('#tab-devis .filter-bar input').value,this.value)">
           <option value="">Tous statuts</option>
           <option value="brouillon">Brouillon</option><option value="envoye">Envoyé</option>
           <option value="accepte">Accepté</option><option value="refuse">Refusé</option><option value="expire">Expiré</option>
         </select>
       </div>
       <div class="tscroll"><table>
-        <thead><tr><th>N°</th><th>Client</th><th>Objet</th><th>Total TTC</th><th>Statut</th></tr></thead>
-        <tbody>${list.length ? list.map(d=>`<tr class="clickable" onclick="openEditDevis('${d.id}')">
+        <thead><tr>${thS('devis','numero','N°')}${thS('devis','client','Client')}${thS('devis','objet','Objet')}${thS('devis','total_ttc','Total TTC')}${thS('devis','statut','Statut')}</tr></thead>
+        <tbody>${paged.length ? paged.map(d=>`<tr class="clickable" onclick="openViewDevis('${d.id}')">
           <td><strong>${d.numero}</strong></td><td>${clientName(d.clients)}</td>
           <td>${d.objet||'—'}</td><td><strong>${fmt(d.total_ttc)} AED</strong></td>
           <td>${bStatutDevis(d.statut)}</td>
         </tr>`).join('') : '<tr><td colspan="5" class="empty-state">Aucun devis</td></tr>'}
         </tbody>
       </table></div>
+      ${pgBar('devis', total)}
     </div>`;
 }
 
@@ -1202,26 +1349,30 @@ function renderFactures(q='', statut='') {
   let list = S.factures;
   if (q) list = list.filter(f => `${clientName(f.clients)} ${f.numero} ${f.objet||''}`.toLowerCase().includes(q.toLowerCase()));
   if (statut) list = list.filter(f => f.statut===statut);
+  list = applySort(list, 'factures');
+  const total = list.length;
+  const paged = pgSlice(list, 'factures');
   document.getElementById('tab-factures').innerHTML = `
     <div class="page-hd"><div class="page-title">Factures</div><button class="btn-p" onclick="openNewFacture()">+ Nouvelle facture</button></div>
     <div class="table-card">
       <div class="filter-bar">
-        <input placeholder="Client, numéro, objet…" oninput="renderFactures(this.value,document.getElementById('facf-s').value)">
-        <select id="facf-s" onchange="renderFactures(document.querySelector('#tab-factures .filter-bar input').value,this.value)">
+        <input placeholder="Client, numéro, objet…" oninput="pageState.factures=1;renderFactures(this.value,document.getElementById('facf-s').value)">
+        <select id="facf-s" onchange="pageState.factures=1;renderFactures(document.querySelector('#tab-factures .filter-bar input').value,this.value)">
           <option value="">Tous statuts</option>
           <option value="brouillon">Brouillon</option><option value="envoyee">Envoyée</option>
           <option value="payee">Payée</option><option value="en_retard">En retard</option><option value="annulee">Annulée</option>
         </select>
       </div>
       <div class="tscroll"><table>
-        <thead><tr><th>N°</th><th>Client</th><th>Objet</th><th>Total TTC</th><th>Statut</th></tr></thead>
-        <tbody>${list.length ? list.map(f=>`<tr class="clickable" onclick="openEditFacture('${f.id}')">
+        <thead><tr>${thS('factures','numero','N°')}${thS('factures','client','Client')}${thS('factures','objet','Objet')}${thS('factures','total_ttc','Total TTC')}${thS('factures','statut','Statut')}</tr></thead>
+        <tbody>${paged.length ? paged.map(f=>`<tr class="clickable" onclick="openViewFacture('${f.id}')">
           <td><strong>${f.numero}</strong></td><td>${clientName(f.clients)}</td>
           <td>${f.objet||'—'}</td><td><strong>${fmt(f.total_ttc)} AED</strong></td>
           <td>${bStatutFacture(f.statut)}</td>
         </tr>`).join('') : '<tr><td colspan="5" class="empty-state">Aucune facture</td></tr>'}
         </tbody>
       </table></div>
+      ${pgBar('factures', total)}
     </div>`;
 }
 
@@ -1291,17 +1442,17 @@ async function deleteFacture() {
 async function renderSettings() {
   const el = document.getElementById('tab-settings');
   if (!el) return;
-  if (currentRole !== 'administrateur') { el.innerHTML = '<div style="padding:40px;color:#888">Accès refusé.</div>'; return; }
+  if (currentRole !== 'administrateur') { el.innerHTML = '<div style="padding:40px;color:var(--muted)">Accès refusé.</div>'; return; }
   await loadAllProfils();
   const roles = ['administrateur','technicien','comptable','commercial'];
   const rows = S.allProfils.map(p => {
     const isSelf = p.id === currentUser.id;
     const opts = roles.map(r => `<option value="${r}"${p.role===r?' selected':''}>${r.charAt(0).toUpperCase()+r.slice(1)}</option>`).join('');
-    return `<tr style="border-bottom:1px solid #222">
-      <td style="padding:10px 12px;font-size:13px;color:#ccc">${p.email || p.id.substring(0,12)+'…'}</td>
-      <td style="padding:10px 12px">
+    return `<tr>
+      <td style="padding:11px 14px;font-size:13px;color:var(--text)">${p.email || p.id.substring(0,12)+'…'}</td>
+      <td style="padding:11px 14px">
         <select data-uid="${p.id}" onchange="saveUserRole('${p.id}',this.value)"
-          style="background:#2c2c2c;color:#e8e8e8;border:1px solid #3a3a3a;border-radius:5px;padding:4px 8px;font-size:12px;font-family:inherit"
+          style="background:var(--surface);color:var(--text);border:1px solid var(--border);border-radius:5px;padding:4px 10px;font-size:12px;font-family:inherit;outline:none;cursor:pointer;"
           ${isSelf ? 'disabled title="Votre propre compte"' : ''}>
           ${opts}
         </select>
@@ -1309,15 +1460,12 @@ async function renderSettings() {
     </tr>`;
   }).join('');
   el.innerHTML = `
-    <div class="pg-header"><div class="pg-title">Paramètres — Utilisateurs</div></div>
-    <div class="card" style="overflow:auto">
-      <table style="width:100%;border-collapse:collapse">
-        <thead><tr style="border-bottom:1px solid #2c2c2c">
-          <th style="padding:10px 12px;text-align:left;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.6px">Utilisateur</th>
-          <th style="padding:10px 12px;text-align:left;font-size:11px;color:#666;font-weight:600;text-transform:uppercase;letter-spacing:.6px">Rôle</th>
-        </tr></thead>
+    <div class="page-title">Paramètres — Utilisateurs</div>
+    <div class="table-card">
+      <div class="tscroll"><table>
+        <thead><tr><th>Utilisateur</th><th>Rôle</th></tr></thead>
         <tbody>${rows}</tbody>
-      </table>
+      </table></div>
     </div>`;
 }
 async function saveUserRole(userId, newRole) {
@@ -1360,6 +1508,155 @@ function updateLigne(type, i, field, val) {
 function calcTotals(type) {
   const ht = getLignes(type).reduce((s,l) => s + Number(l.qte||0)*Number(l.prix||0), 0);
   return { ht, tva: ht*0.05, ttc: ht*1.05 };
+}
+
+// ===== DETAIL VIEWS =====
+function openViewClient(id) {
+  const c = S.clients.find(x => x.id === id); if (!c) return;
+  const intervs = S.interventions.filter(i => i.client_id === id).slice(0, 5);
+  const devs = S.devis.filter(d => d.client_id === id).slice(0, 5);
+  const facts = S.factures.filter(f => f.client_id === id).slice(0, 5);
+  document.getElementById('tab-clients').innerHTML = `
+    <button class="detail-back" onclick="renderClients()">← Retour aux clients</button>
+    <div class="detail-hd">
+      <div>
+        <div class="detail-num">${c.nom}${c.prenom ? ' ' + c.prenom : ''}</div>
+        <div style="margin-top:6px">${bTypeClient(c.type)}</div>
+      </div>
+      <button class="btn-p" onclick="openEditClient('${c.id}')">Modifier</button>
+    </div>
+    <div class="dcard">
+      <div class="dcard-t">Contact &amp; Adresse</div>
+      <div class="dgrid">
+        ${c.entreprise ? `<div><div class="dfl">Entreprise</div><div class="dfv">${c.entreprise}</div></div>` : ''}
+        ${c.telephone ? `<div><div class="dfl">Téléphone</div><div class="dfv"><a href="tel:${c.telephone}" class="contact-link">${c.telephone}</a></div></div>` : ''}
+        ${c.email ? `<div><div class="dfl">Email</div><div class="dfv"><a href="mailto:${c.email}" class="contact-link">${c.email}</a></div></div>` : ''}
+        ${c.emirat ? `<div><div class="dfl">Émirat</div><div class="dfv">${c.emirat}</div></div>` : ''}
+        ${c.adresse ? `<div style="grid-column:1/-1"><div class="dfl">Adresse</div><div class="dfv">${c.adresse}</div></div>` : ''}
+        ${c.notes ? `<div style="grid-column:1/-1"><div class="dfl">Notes</div><div class="dfv" style="white-space:pre-line">${c.notes}</div></div>` : ''}
+      </div>
+    </div>
+    ${intervs.length ? `<div class="dcard"><div class="dcard-t">Dernières interventions</div>
+      <table class="dtable"><thead><tr><th>N°</th><th>Type</th><th>Date</th><th>Statut</th></tr></thead><tbody>
+        ${intervs.map(i=>`<tr><td><strong>${i.numero}</strong></td><td>${bTypeInterv(i.type)}</td><td>${fmtDate(i.date_debut)}</td><td>${bStatutInterv(i.statut)}</td></tr>`).join('')}
+      </tbody></table></div>` : ''}
+    ${devs.length ? `<div class="dcard"><div class="dcard-t">Derniers devis</div>
+      <table class="dtable"><thead><tr><th>N°</th><th>Objet</th><th>Total TTC</th><th>Statut</th></tr></thead><tbody>
+        ${devs.map(d=>`<tr><td><strong>${d.numero}</strong></td><td>${d.objet||'—'}</td><td>${fmt(d.total_ttc)} AED</td><td>${bStatutDevis(d.statut)}</td></tr>`).join('')}
+      </tbody></table></div>` : ''}
+    ${facts.length ? `<div class="dcard"><div class="dcard-t">Dernières factures</div>
+      <table class="dtable"><thead><tr><th>N°</th><th>Objet</th><th>Total TTC</th><th>Statut</th></tr></thead><tbody>
+        ${facts.map(f=>`<tr><td><strong>${f.numero}</strong></td><td>${f.objet||'—'}</td><td>${fmt(f.total_ttc)} AED</td><td>${bStatutFacture(f.statut)}</td></tr>`).join('')}
+      </tbody></table></div>` : ''}
+  `;
+}
+
+function openViewInterv(id) {
+  const i = S.interventions.find(x => x.id === id); if (!i) return;
+  const client = S.clients.find(c => c.id === i.client_id);
+  document.getElementById('tab-interventions').innerHTML = `
+    <button class="detail-back" onclick="renderInterventions()">← Retour aux interventions</button>
+    <div class="detail-hd">
+      <div>
+        <div class="detail-num">${i.numero}</div>
+        <div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${bTypeInterv(i.type)} ${bStatutInterv(i.statut)}</div>
+      </div>
+      <button class="btn-p" onclick="openEditInterv('${i.id}')">Modifier</button>
+    </div>
+    <div class="dcard">
+      <div class="dcard-t">Informations</div>
+      <div class="dgrid">
+        <div><div class="dfl">Client</div><div class="dfv">${client ? clientName(client) : clientName(i.clients)}</div></div>
+        <div><div class="dfl">Date</div><div class="dfv">${i.date_debut ? new Date(i.date_debut).toLocaleString('fr-FR',{dateStyle:'medium',timeStyle:'short'}) : '—'}</div></div>
+        ${i.description ? `<div style="grid-column:1/-1"><div class="dfl">Description</div><div class="dfv" style="white-space:pre-line;margin-top:2px">${i.description}</div></div>` : ''}
+        ${i.notes ? `<div style="grid-column:1/-1"><div class="dfl">Notes internes</div><div class="dfv" style="white-space:pre-line;margin-top:2px">${i.notes}</div></div>` : ''}
+      </div>
+    </div>
+    ${client && (client.telephone || client.email) ? `<div class="dcard"><div class="dcard-t">Contact client</div><div class="dgrid">
+      ${client.telephone ? `<div><div class="dfl">Téléphone</div><div class="dfv"><a href="tel:${client.telephone}" class="contact-link">${client.telephone}</a></div></div>` : ''}
+      ${client.email ? `<div><div class="dfl">Email</div><div class="dfv"><a href="mailto:${client.email}" class="contact-link">${client.email}</a></div></div>` : ''}
+    </div></div>` : ''}
+  `;
+}
+
+async function openViewDevis(id) {
+  const d = S.devis.find(x => x.id === id); if (!d) return;
+  const { data: lignes } = await sb.from('devis_lignes').select('*').eq('devis_id', id).order('ordre');
+  const client = S.clients.find(c => c.id === d.client_id);
+  const ls = lignes || [];
+  const ht = ls.reduce((s,l) => s + Number(l.montant_ht||0), 0);
+  document.getElementById('tab-devis').innerHTML = `
+    <button class="detail-back" onclick="renderDevis()">← Retour aux devis</button>
+    <div class="detail-hd">
+      <div>
+        <div class="detail-num">${d.numero}</div>
+        <div style="margin-top:6px">${bStatutDevis(d.statut)}</div>
+      </div>
+      <button class="btn-p" onclick="openEditDevis('${d.id}')">Modifier</button>
+    </div>
+    <div class="dcard">
+      <div class="dcard-t">Informations</div>
+      <div class="dgrid">
+        <div><div class="dfl">Client</div><div class="dfv">${client ? clientName(client) : clientName(d.clients)}</div></div>
+        <div><div class="dfl">Date de validité</div><div class="dfv">${fmtDate(d.date_validite)}</div></div>
+        <div><div class="dfl">Créé le</div><div class="dfv">${fmtDate(d.created_at)}</div></div>
+        ${d.objet ? `<div><div class="dfl">Objet</div><div class="dfv">${d.objet}</div></div>` : ''}
+      </div>
+      ${d.notes ? `<div style="margin-top:10px"><div class="dfl">Notes / Conditions</div><div class="dfv" style="margin-top:4px;white-space:pre-line">${d.notes}</div></div>` : ''}
+    </div>
+    <div class="dcard">
+      <div class="dcard-t">Lignes du devis</div>
+      ${ls.length ? `<table class="dtable">
+        <thead><tr><th>Désignation</th><th style="text-align:right">Qté</th><th style="text-align:right">Prix HT</th><th style="text-align:right">Total HT</th></tr></thead>
+        <tbody>${ls.map(l=>`<tr><td>${l.designation}</td><td style="text-align:right">${l.quantite}</td><td style="text-align:right">${fmt(l.prix_unitaire_ht)} AED</td><td style="text-align:right">${fmt(l.montant_ht)} AED</td></tr>`).join('')}</tbody>
+      </table>
+      <div class="dtotal">
+        <div style="font-size:12px;color:var(--muted)">Sous-total HT : ${fmt(ht)} AED</div>
+        <div style="font-size:12px;color:var(--muted)">TVA 5% : ${fmt(ht*0.05)} AED</div>
+        <div class="ttc">${fmt(ht*1.05)} AED TTC</div>
+      </div>` : '<div style="color:var(--muted);font-size:13px">Aucune ligne</div>'}
+    </div>
+  `;
+}
+
+async function openViewFacture(id) {
+  const f = S.factures.find(x => x.id === id); if (!f) return;
+  const { data: lignes } = await sb.from('facture_lignes').select('*').eq('facture_id', id).order('ordre');
+  const client = S.clients.find(c => c.id === f.client_id);
+  const ls = lignes || [];
+  const ht = ls.reduce((s,l) => s + Number(l.montant_ht||0), 0);
+  document.getElementById('tab-factures').innerHTML = `
+    <button class="detail-back" onclick="renderFactures()">← Retour aux factures</button>
+    <div class="detail-hd">
+      <div>
+        <div class="detail-num">${f.numero}</div>
+        <div style="margin-top:6px">${bStatutFacture(f.statut)}</div>
+      </div>
+      <button class="btn-p" onclick="openEditFacture('${f.id}')">Modifier</button>
+    </div>
+    <div class="dcard">
+      <div class="dcard-t">Informations</div>
+      <div class="dgrid">
+        <div><div class="dfl">Client</div><div class="dfv">${client ? clientName(client) : clientName(f.clients)}</div></div>
+        <div><div class="dfl">Date d'échéance</div><div class="dfv">${fmtDate(f.date_echeance)}</div></div>
+        <div><div class="dfl">Créé le</div><div class="dfv">${fmtDate(f.created_at)}</div></div>
+        ${f.objet ? `<div><div class="dfl">Objet</div><div class="dfv">${f.objet}</div></div>` : ''}
+      </div>
+      ${f.notes ? `<div style="margin-top:10px"><div class="dfl">Notes</div><div class="dfv" style="margin-top:4px;white-space:pre-line">${f.notes}</div></div>` : ''}
+    </div>
+    <div class="dcard">
+      <div class="dcard-t">Lignes de facturation</div>
+      ${ls.length ? `<table class="dtable">
+        <thead><tr><th>Désignation</th><th style="text-align:right">Qté</th><th style="text-align:right">Prix HT</th><th style="text-align:right">Total HT</th></tr></thead>
+        <tbody>${ls.map(l=>`<tr><td>${l.designation}</td><td style="text-align:right">${l.quantite}</td><td style="text-align:right">${fmt(l.prix_unitaire_ht)} AED</td><td style="text-align:right">${fmt(l.montant_ht)} AED</td></tr>`).join('')}</tbody>
+      </table>
+      <div class="dtotal">
+        <div style="font-size:12px;color:var(--muted)">Sous-total HT : ${fmt(ht)} AED</div>
+        <div style="font-size:12px;color:var(--muted)">TVA 5% : ${fmt(ht*0.05)} AED</div>
+        <div class="ttc">${fmt(ht*1.05)} AED TTC</div>
+      </div>` : '<div style="color:var(--muted);font-size:13px">Aucune ligne</div>'}
+    </div>
+  `;
 }
 
 // ===== START =====
